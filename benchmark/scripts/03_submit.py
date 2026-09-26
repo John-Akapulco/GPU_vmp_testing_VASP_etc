@@ -43,6 +43,8 @@ def main():
     for series in args.series:
         for bj in sorted((BENCH / "runs" / series).glob("*/*/bench.json")):
             m = json.loads(bj.read_text())
+            if bj.parent.name != m["variant"]:  # copie de répétition (g1_r2…) : traitée avec l'original
+                continue
             if m["variant"] not in args.variant or m["family"] not in args.family:
                 continue
             if not args.min_atoms <= m["nsites"] <= args.max_atoms:
