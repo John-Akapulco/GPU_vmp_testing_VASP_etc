@@ -1,0 +1,22 @@
+# Environnements Python et liens vers les POTCAR (sous licence VASP, jamais versionnés)
+.venv/
+psp/
+POTCAR
+__pycache__/
+# Calculs : trop volumineux, seuls les tableaux de results/ sont versionnés
+benchmark/runs/
+benchmark/logs/
+benchmark/lists/
+benchmark/results/*.csv
+# VASPilot : configurations contenant des clés, données de travail
+vaspilot/configs/mcp_config.yaml
+vaspilot/configs/crew_config.yaml
+vaspilot/mcp/work/
+vaspilot/mcp/record/
+vaspilot/mcp/downloads/
+vaspilot/mcp/uploads/
+vaspilot/mcp/*.log
+vaspilot/crew_server/work/
+vaspilot/crew_server/*.log
+*/pid.txt
+*/*/pid.txt

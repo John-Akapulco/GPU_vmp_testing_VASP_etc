@@ -1,0 +1,75 @@
+# Configuration du serveur MCP de VASPilot pour vm1-ic2mp (2 x H100).
+# Modèle : start_mcp_server.sh remplace __MP_API_KEY__ par le contenu de ~/.mp_api_key
+# et écrit configs/mcp_config.yaml (non versionné).
+# Paramètres INCAR par défaut : ceux de l'exemple VASPilot, sans NCORE (imposé à 1 sur GPU), KPAR=1.
+attachment_path: /home/gfrapper/testing_VASP/vaspilot_vm1/mcp/attachment
+work_dir: /home/gfrapper/testing_VASP/vaspilot_vm1/mcp/work
+db_path: /home/gfrapper/testing_VASP/vaspilot_vm1/mcp/record/record.db
+mp_api_key: __MP_API_KEY__
+structure_path: /home/gfrapper/testing_VASP/vaspilot_vm1/mcp/downloads
+VASP_default_INCAR:
+  relaxation:
+    PREC: Accurate
+    ISMEAR: 0
+    SIGMA: 0.03
+    EDIFF: 1e-6
+    AMIN: 0.01
+    LCHARG: true
+    IBRION: 1
+    EDIFFG: -0.005
+    NSW: 100
+    MAGMOM: 5000*0
+    ISIF: 3
+    NELM: 120
+    LWAVE: false
+    KPAR: 1
+  scf_nsoc:
+    PREC: Accurate
+    ISMEAR: 0
+    SIGMA: 0.03
+    EDIFF: 1e-7
+    AMIN: 0.01
+    LCHARG: true
+    LWAVE: true
+    NELM: 120
+    MAGMOM: 5000*0
+    KPAR: 1
+  nscf_nsoc:
+    PREC: Accurate
+    ISMEAR: 0
+    SIGMA: 0.03
+    EDIFF: 1e-7
+    AMIN: 0.01
+    LCHARG: true
+    LWAVE: true
+    NELM: 120
+    MAGMOM: 5000*0
+    KPAR: 1
+  scf_soc:
+    PREC: Accurate
+    ISMEAR: 0
+    SIGMA: 0.03
+    EDIFF: 1e-7
+    AMIN: 0.01
+    LCHARG: true
+    LWAVE: true
+    LSORBIT: true
+    LORBIT: 11
+    NELM: 120
+    MAGMOM: 5000*0
+    KPAR: 1
+  nscf_soc:
+    PREC: Accurate
+    ISMEAR: 0
+    SIGMA: 0.03
+    EDIFF: 1e-7
+    AMIN: 0.01
+    LCHARG: true
+    LWAVE: true
+    ICHARG: 11
+    ISART: 1
+    LSORBIT: true
+    LORBIT: 11
+    NELM: 120
+    MAGMOM: 5000*0
+    KPAR: 1

@@ -1,0 +1,263 @@
+From 0efc68d8bd6d8326431e9af05efc9c12466fe521 Mon Sep 17 00:00:00 2001
+From: gfrapper <computchem86@gmail.com>
+Date: Sat, 26 Sep 2026 13:02:48 +0200
+Subject: [PATCH] =?UTF-8?q?Adaptation=20=C3=A0=20vm1-ic2mp=20(2=20x=20H100?=
+ =?UTF-8?q?,=20Slurm=20sans=20comptabilit=C3=A9)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- sbatch --gres=gpu:N --ntasks=N (1 rang MPI par GPU)
+- état final des jobs lu dans slurm_exit_code quand sacct est indisponible
+- nouvel outil MCP vasp_mp_calculation : jeux MP PBE/r2SCAN (point simple, relaxation)
+- embedder facultatif : mémoire CrewAI désactivée sans serveur d'embeddings
+- correction des chemins relatifs de --config dans les lanceurs
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/vaspilot/crew/vasp_crew.py           | 14 ++++-
+ src/vaspilot/scripts/start_flask.py      |  4 +-
+ src/vaspilot/scripts/start_mcp.py        |  4 +-
+ src/vaspilot/scripts/start_quart.py      |  4 +-
+ src/vaspilot/tools/mcp/mcp_server.py     | 31 ++++++++++-
+ src/vaspilot/tools/mcp/vasp_calculate.py | 67 ++++++++++++++++++++++--
+ 6 files changed, 112 insertions(+), 12 deletions(-)
+
+diff --git a/src/vaspilot/crew/vasp_crew.py b/src/vaspilot/crew/vasp_crew.py
+index 2a98888..050bfd9 100644
+--- a/src/vaspilot/crew/vasp_crew.py
++++ b/src/vaspilot/crew/vasp_crew.py
+@@ -27,7 +27,9 @@ class VaspCrew():
+ 		self.llm_config = {}
+ 		for key, value in config['llm_config'].items():
+ 			self.llm_config[key] = self.llm_mapper[value]
+-		self.embedder = LocalAPIEmbedder(url=config["embbeder"]["url"], model_id=config["embbeder"]["model_id"], api_key=config["embbeder"]["api_key"])
++		# Embedder facultatif (vm1-ic2mp) : sans lui, la mémoire de la crew est désactivée
++		emb = config.get("embbeder")
++		self.embedder = LocalAPIEmbedder(url=emb["url"], model_id=emb["model_id"], api_key=emb["api_key"]) if emb else None
+ 
+ 		self.persist_tools = {}
+ 
+@@ -135,6 +137,16 @@ class VaspCrew():
+ 		manager_agent = self._create_manager_agent()
+ 		agent_dict = self._inject_agent_tools(agent_dict)
+ 		working_agents = list(agent_dict.values())
++		if self.embedder is None:
++			return Crew(
++				agents=working_agents,
++				tasks=[],
++				process=Process.hierarchical,
++				verbose=True,
++				output_log_file=f"{work_dir}/output.log",
++				manager_agent=manager_agent,
++				memory=False,
++			)
+ 		return Crew(
+ 			agents=working_agents,
+ 			tasks=[],
+diff --git a/src/vaspilot/scripts/start_flask.py b/src/vaspilot/scripts/start_flask.py
+index 0bd6501..d82b29b 100644
+--- a/src/vaspilot/scripts/start_flask.py
++++ b/src/vaspilot/scripts/start_flask.py
+@@ -25,11 +25,11 @@ def start_flask():
+     # 处理路径
+     config_path = Path(args.config)
+     if not config_path.is_absolute():
+-        config_path = os.path.abspath(config_path)
++        config_path = Path(os.path.abspath(config_path))
+     
+     work_dir = Path(args.work_dir)
+     if not work_dir.is_absolute():
+-        work_dir = os.path.abspath(work_dir)
++        work_dir = Path(os.path.abspath(work_dir))
+     os.makedirs(work_dir, exist_ok=True)
+     
+     # 加载配置
+diff --git a/src/vaspilot/scripts/start_mcp.py b/src/vaspilot/scripts/start_mcp.py
+index cd0a834..9310fc8 100644
+--- a/src/vaspilot/scripts/start_mcp.py
++++ b/src/vaspilot/scripts/start_mcp.py
+@@ -22,11 +22,11 @@ def start_mcp():
+     # 处理路径
+     config_path = Path(args.config)
+     if not config_path.is_absolute():
+-        config_path = os.path.abspath(config_path)
++        config_path = Path(os.path.abspath(config_path))
+     
+     work_dir = Path(args.work_dir)
+     if not work_dir.is_absolute():
+-        work_dir = os.path.abspath(work_dir)
++        work_dir = Path(os.path.abspath(work_dir))
+     os.makedirs(work_dir, exist_ok=True)
+     
+     # 检查配置文件（如果需要的话）
+diff --git a/src/vaspilot/scripts/start_quart.py b/src/vaspilot/scripts/start_quart.py
+index b083657..b757b47 100644
+--- a/src/vaspilot/scripts/start_quart.py
++++ b/src/vaspilot/scripts/start_quart.py
+@@ -27,11 +27,11 @@ def start_quart():
+     # 处理路径
+     config_path = Path(args.config)
+     if not config_path.is_absolute():
+-        config_path = os.path.abspath(config_path)
++        config_path = Path(os.path.abspath(config_path))
+     
+     work_dir = Path(args.work_dir)
+     if not work_dir.is_absolute():
+-        work_dir = os.path.abspath(work_dir)
++        work_dir = Path(os.path.abspath(work_dir))
+     os.makedirs(work_dir, exist_ok=True)
+     
+     # 加载配置
+diff --git a/src/vaspilot/tools/mcp/mcp_server.py b/src/vaspilot/tools/mcp/mcp_server.py
+index ddd1e11..0e27179 100644
+--- a/src/vaspilot/tools/mcp/mcp_server.py
++++ b/src/vaspilot/tools/mcp/mcp_server.py
+@@ -11,7 +11,7 @@ import yaml
+ import math
+ import numpy as np
+ import pickle
+-from .vasp_calculate import vasp_relaxation, vasp_scf, vasp_nscf, check_status, cancel_slurm_job
++from .vasp_calculate import vasp_relaxation, vasp_scf, vasp_nscf, vasp_mp_calculation, check_status, cancel_slurm_job
+ from .struct_tools import search_materials_project, analyze_crystal_structure, create_crystal_structure, make_supercell, rotate_structure, symmetrize_structure, scale_structure
+ from pydantic import BaseModel, Field
+ from .sqlite_database import VaspCalculationDB
+@@ -144,6 +144,35 @@ def main(config_path: str = None, port: int = 8933, host: str = "0.0.0.0"):
+         }
+         return llm_friendly_result
+ 
++    @mcp.tool(name="vasp_mp_calculation")
++    async def vasp_mp_calculation_tool(structure_path: str, functional: str = "pbe", calc: str = "sp",
++                                       n_gpu: int = 1, band_gap: Optional[float] = None,
++                                       incar_tags: Optional[Dict] = None) -> Dict[str, Any]:
++        """
++        Submit a VASP calculation using the Materials Project input sets (for benchmarking on vm1-ic2mp GPUs).
++
++        Args:
++            structure_path: Path to the structure file (CIF, POSCAR, JSON...).
++            functional: "pbe" (MP GGA/GGA+U methodology) or "r2scan" (MP r2SCAN methodology).
++            calc: "sp" for a single-point (static) calculation, "relax" for a full relaxation (ISIF=3).
++            n_gpu: Number of H100 GPUs (1 or 2). One MPI rank per GPU. Use 1 unless the user asks for 2.
++            band_gap: Materials Project band gap in eV, used by r2SCAN to choose KSPACING. None -> KSPACING 0.22.
++            incar_tags: Extra INCAR tags (e.g. {"KPAR": 2}). Use None unless explicitly specified by the user.
++        Returns:
++            A dict with calculation_id, slurm_id, success, error, status, calculate_path.
++        """
++        if n_gpu not in (1, 2):
++            return {"success": False, "error": "n_gpu must be 1 or 2 on vm1-ic2mp"}
++        calculation_id = str(uuid.uuid4())
++        struct = Structure.from_file(structure_path)
++        result = vasp_mp_calculation(calculation_id=calculation_id, work_dir=settings['work_dir'],
++                                     struct=struct, functional=functional, calc=calc,
++                                     attachment_path=attachment_path, n_gpu=n_gpu,
++                                     band_gap=band_gap, incar_tags=incar_tags)
++        result['calculation_id'] = calculation_id
++        write_record(calculation_id, result)
++        return {k: result.get(k) for k in ("calculation_id", "slurm_id", "success", "error", "status", "calculate_path")}
++
+     @mcp.tool(name="vasp_scf")
+     async def vasp_scf_tool(restart_id: Optional[str] = None, structure_path: Optional[str] = None, soc: bool=True, incar_tags: Optional[Dict] = None, kpoint_num: Optional[tuple[int, int, int]] = None, potcar_map: Optional[Dict] = None) -> Dict[str, Any]:
+         """
+diff --git a/src/vaspilot/tools/mcp/vasp_calculate.py b/src/vaspilot/tools/mcp/vasp_calculate.py
+index c6b4182..e41a4a1 100644
+--- a/src/vaspilot/tools/mcp/vasp_calculate.py
++++ b/src/vaspilot/tools/mcp/vasp_calculate.py
+@@ -13,7 +13,7 @@ from mcp.server.fastmcp import Context
+ 
+ 
+ def _submit_slurm_job(calc_type: str, calculate_path: str, 
+-                     attachment_path: Optional[str] = None) -> Dict[str, Any]:
++                     attachment_path: Optional[str] = None, n_gpu: int = 1) -> Dict[str, Any]:
+     """
+     通用的SLURM任务提交方法
+     
+@@ -56,7 +56,8 @@ def _submit_slurm_job(calc_type: str, calculate_path: str,
+         
+         # 提交SLURM任务
+         time.sleep(3)
+-        result = subprocess.run(['sbatch', slurm_script_path], 
++        # vm1-ic2mp : 1 rang MPI par GPU, le nombre de GPU est passé à sbatch
++        result = subprocess.run(['sbatch', f'--gres=gpu:{n_gpu}', f'--ntasks={n_gpu}', slurm_script_path], 
+                               capture_output=True, text=True, cwd=calculate_path)
+         
+         if result.returncode == 0:
+@@ -277,6 +278,62 @@ def vasp_nscf(calculation_id: str, work_dir: str, struct: Structure,
+     return _submit_slurm_job("nscf", band_dir, attachment_path)
+ 
+ 
++def vasp_mp_calculation(calculation_id: str, work_dir: str, struct: Structure, functional: str,
++                        calc: str, attachment_path: Optional[str] = None, n_gpu: int = 1,
++                        band_gap: Optional[float] = None, incar_tags: Optional[Dict] = None) -> Dict[str, Any]:
++    """Calcul VASP avec les jeux de paramètres de Materials Project (ajout vm1-ic2mp).
++
++    functional : "pbe" (MPStaticSet / MPRelaxSet) ou "r2scan" (MPScanStaticSet / MPScanRelaxSet)
++    calc       : "sp" (point simple) ou "relax" (optimisation ISIF 3)
++    Écarts à MP : POTCAR PBE_54 (W_sv pour W), NCORE retiré (GPU), pas de WAVECAR/CHGCAR,
++    ISMEAR 0 si moins de 4 points k.
++    """
++    from pymatgen.io.vasp.sets import MPRelaxSet, MPScanRelaxSet, MPScanStaticSet, MPStaticSet
++    sets = {("pbe", "sp"): MPStaticSet, ("pbe", "relax"): MPRelaxSet,
++            ("r2scan", "sp"): MPScanStaticSet, ("r2scan", "relax"): MPScanRelaxSet}
++    functional, calc = functional.lower(), calc.lower()
++    if (functional, calc) not in sets:
++        return {"slurm_id": None, "calc_type": calc, "calculate_path": None, "success": False,
++                "error": "functional doit valoir 'pbe' ou 'r2scan', calc 'sp' ou 'relax'", "status": "failed"}
++    user_incar = {"NCORE": None, "NPAR": None, "KPAR": 1, "LWAVE": False, "LCHARG": False,
++                  "LAECHG": False, "LVTOT": False, "LVHAR": False, "LELF": False}
++    user_incar.update(incar_tags or {})
++    kwargs = dict(user_potcar_functional="PBE_54", user_potcar_settings={"W": "W_sv"})
++    if functional == "r2scan" and band_gap is not None:
++        kwargs["bandgap"] = band_gap
++    vis = sets[(functional, calc)](struct, user_incar_settings=user_incar, **kwargs)
++    if vis.kpoints is not None:
++        nk = math.prod(vis.kpoints.kpts[0])
++    else:
++        nk = math.prod(max(1, math.ceil(b / vis.incar["KSPACING"]))
++                       for b in vis.structure.lattice.reciprocal_lattice.abc)
++    if vis.incar.get("ISMEAR") == -5 and nk < 4:
++        vis = sets[(functional, calc)](struct, user_incar_settings=dict(user_incar, ISMEAR=0, SIGMA=0.05), **kwargs)
++
++    calc_dir = os.path.join(os.path.abspath(f"{work_dir}/{calculation_id}"), f"mp_{functional}_{calc}/")
++    vis.write_input(calc_dir)
++    calc_type = "relaxation" if calc == "relax" else "scf"
++    return _submit_slurm_job(calc_type, calc_dir, attachment_path, n_gpu=n_gpu)
++
++
++def _final_state_from_files(calculate_path: str) -> Optional[str]:
++    """État final d'un job d'après les fichiers écrits par slurm.sh.
++
++    Sur vm1-ic2mp la comptabilité Slurm est désactivée : sacct ne renvoie rien.
++    slurm.sh écrit le code de retour de VASP dans slurm_exit_code.
++    """
++    code_file = os.path.join(calculate_path, "slurm_exit_code")
++    if not os.path.exists(code_file):
++        return None
++    try:
++        code = int(open(code_file).read().strip() or 1)
++    except ValueError:
++        code = 1
++    outcar = os.path.join(calculate_path, "OUTCAR")
++    finished = os.path.exists(outcar) and "General timing" in open(outcar, errors="ignore").read()[-30000:]
++    return "COMPLETED" if code == 0 and finished else "FAILED"
++
++
+ def check_status(calc_dict: dict[str, dict[str, Any]]) -> Dict[str, Any]:
+     """
+     检查SLURM任务状态并返回计算结果
+@@ -308,9 +365,11 @@ def check_status(calc_dict: dict[str, dict[str, Any]]) -> Dict[str, Any]:
+                 time.sleep(3)
+                 sacct_result = subprocess.run(['sacct', '-j', slurm_id, '--format=State', '--noheader'], 
+                                             capture_output=True, text=True)
+-                
+-                if sacct_result.returncode == 0:
++                state = _final_state_from_files(calculate_path)
++                if state is None and sacct_result.returncode == 0 and sacct_result.stdout.strip():
+                     state = sacct_result.stdout.strip().split('\n')[0].strip()
++
++                if state is not None:
+                     if 'COMPLETED' in state:
+                         job_status = "completed"
+                         # 读取计算结果
+-- 
+2.43.0
+
