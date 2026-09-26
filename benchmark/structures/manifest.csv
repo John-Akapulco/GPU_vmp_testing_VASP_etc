@@ -1,0 +1,50 @@
+label,family,material_id,formula,nsites,spacegroup,band_gap_eV,is_metal,is_magnetic,mp_uncorrected_energy_per_atom,mp_E_pbe,mp_E_r2scan,note
+scal_Si_002,scaling,mp-149,Si,2,Fd-3m,0.6103,False,False,-8.773764595,-5.42531803,-8.773764595,maille primitive
+scal_Si_008,scaling,mp-149,Si,8,Fd-3m,0.6103,False,False,-8.773764595,-5.42531803,-8.773764595,"conventionnelle x (1, 1, 1)"
+scal_Si_016,scaling,mp-149,Si,16,Fd-3m,0.6103,False,False,-8.773764595,-5.42531803,-8.773764595,"conventionnelle x (2, 1, 1)"
+scal_Si_032,scaling,mp-149,Si,32,Fd-3m,0.6103,False,False,-8.773764595,-5.42531803,-8.773764595,"conventionnelle x (2, 2, 1)"
+scal_Si_064,scaling,mp-149,Si,64,Fd-3m,0.6103,False,False,-8.773764595,-5.42531803,-8.773764595,"conventionnelle x (2, 2, 2)"
+scal_Al_001,scaling,mp-134,Al,1,Fm-3m,0.0,True,False,-6.73209833,-3.74557583,-6.73209833,maille primitive
+scal_Al_004,scaling,mp-134,Al,4,Fm-3m,0.0,True,False,-6.73209833,-3.74557583,-6.73209833,"conventionnelle x (1, 1, 1)"
+scal_Al_032,scaling,mp-134,Al,32,Fm-3m,0.0,True,False,-6.73209833,-3.74557583,-6.73209833,"conventionnelle x (2, 2, 2)"
+scal_Al_064,scaling,mp-134,Al,64,Fm-3m,0.0,True,False,-6.73209833,-3.74557583,-6.73209833,"conventionnelle x (2, 2, 4)"
+scal_MgO_002,scaling,mp-1265,MgO,2,Fm-3m,4.4292,False,False,-8.064220455,-5.98402468,-8.064220455,maille primitive
+scal_MgO_008,scaling,mp-1265,MgO,8,Fm-3m,4.4292,False,False,-8.064220455,-5.98402468,-8.064220455,"conventionnelle x (1, 1, 1)"
+scal_MgO_016,scaling,mp-1265,MgO,16,Fm-3m,4.4292,False,False,-8.064220455,-5.98402468,-8.064220455,"conventionnelle x (2, 1, 1)"
+scal_MgO_032,scaling,mp-1265,MgO,32,Fm-3m,4.4292,False,False,-8.064220455,-5.98402468,-8.064220455,"conventionnelle x (2, 2, 1)"
+scal_MgO_064,scaling,mp-1265,MgO,64,Fm-3m,4.4292,False,False,-8.064220455,-5.98402468,-8.064220455,"conventionnelle x (2, 2, 2)"
+div_001_metal_Pd,diversity,mp-2,Pd,1,Fm-3m,0.0,True,False,-22.96045361,-5.17988181,-22.96045361,
+div_002_gap_Si,diversity,mp-149,Si,2,Fd-3m,0.6103,False,False,-8.773764595,-5.42531803,-8.773764595,
+div_002_metal_Fe,diversity,mp-13,Fe,2,Im-3m,0.0,True,True,-8.47002121,-8.47002121,-14.41338864,
+div_003_gap_CdF2,diversity,mp-241,CdF2,3,Fm-3m,2.8987,False,False,-11.243246936666667,-3.754663836666667,-11.243246936666667,
+div_003_metal_Ti,diversity,mp-72,Ti,3,P6/mmm,0.0,True,False,-12.937757013333332,-7.895492016666666,-12.937757013333332,
+div_004_gap_PtS,diversity,mp-288,PtS,4,P4_2/mmc,0.3848,False,False,-30.2943338075,-5.510926545,-30.2943338075,
+div_004_metal_Be,diversity,mp-87,Be,4,P6_3/mmc,0.0,True,False,-3.739412865,-3.739412865,-4.3379664175,
+div_006_gap_Cu2O,diversity,mp-361,Cu2O,6,Pn-3m,0.5127,False,False,-9.72117388,-4.79763022,-9.72117388,
+div_006_metal_SrIr2,diversity,mp-318,SrIr2,6,Fd-3m,0.0,True,False,-40.28486048166666,-6.732898005,-40.28486048166666,
+div_008_gap_N2,diversity,mp-154,N2,8,P2_13,7.3768,False,False,-9.12875067125,-8.33644311,-9.12875067125,
+div_008_metal_GeIr,diversity,mp-208,GeIr,8,Pnma,0.0,True,False,-33.47785856375,-7.0588030675,-33.47785856375,
+div_010_gap_MgP4,diversity,mp-384,MgP4,10,P2_1/c,0.7289,False,False,-8.41771475,-4.956805909,-8.41771475,
+div_010_metal_Ti2O3,diversity,mp-458,Ti2O3,10,R-3c,0.0,True,False,-11.91427568,-9.018213044,-11.91427568,
+div_012_gap_B,diversity,mp-160,B,12,R-3m,1.4332,False,False,-7.346354197499999,-6.679391770833334,-7.346354197499999,
+div_012_metal_BaZn5,diversity,mp-303,BaZn5,12,Cmcm,0.0,True,False,-12.0747940325,-1.5907225766666666,-12.0747940325,
+div_016_gap_KAs,diversity,mp-713,KAs,16,P2_12_12_1,0.6728,False,False,-10.95158134375,-3.338292345,-10.95158134375,
+div_016_metal_ReO3,diversity,mp-190,ReO3,16,Pm-3m,0.0,True,False,-8.44223831,-8.44223831,-19.2581794675,
+div_020_gap_MgB4,diversity,mp-365,MgB4,20,Pnma,0.3641,False,False,-6.8837363985,-5.80240259,-6.8837363985,
+div_020_metal_Mg3Ru2,diversity,mp-625,Mg3Ru2,20,P4_132,0.0,True,False,-12.808326592,-4.8132121515,-12.808326592,
+div_024_gap_SeO2,diversity,mp-726,SeO2,24,P4_2/mbc,3.2874,False,False,-9.467873227083333,-5.16008807,-9.467873227083333,
+div_024_metal_NbSe3,diversity,mp-525,NbSe3,24,P2_1/m,0.0,True,False,-17.681153715833332,-5.806498168333333,-17.681153715833332,
+div_032_gap_S,diversity,mp-77,S,32,Fddd,2.5807,False,False,-8.0340372271875,-4.1354432690625,-8.0340372271875,
+div_032_metal_NaB15,diversity,mp-2315,NaB15,32,Imma,0.0,True,False,-7.1886797975,-6.3946468009375,-7.1886797975,
+div_040_gap_Ca3N2,diversity,mp-844,Ca3N2,40,Ia-3,1.1111,False,False,-8.834197172749999,-5.3269523715,-8.834197172749999,
+div_040_metal_Tl2O3,diversity,mp-1658,Tl2O3,40,Ia-3,0.0,True,False,-25.651498816999997,-4.605602757,-25.651498816999997,
+div_048_gap_LiNb3O8,diversity,mp-3368,LiNb3O8,48,P2_1/c,2.9705,False,False,-13.101821083333334,-8.505684539583333,-13.101821083333334,
+div_048_metal_TiMnSi2,diversity,mp-21606,TiMnSi2,48,Pbam,0.0,True,True,-11.891210591458334,-7.624239050416667,-11.891210591458334,
+div_056_gap_Na3P11,diversity,mp-473,Na3P11,56,Pbcn,1.8326,False,False,-8.13539176482143,-4.773569176964286,-8.13539176482143,
+div_056_metal_BaCdSnS4,diversity,mp-12306,BaCdSnS4,56,Fdd2,0.0,True,False,-15.950440416964286,-4.341658521428571,-15.950440416964286,
+div_064_gap_RbSi,diversity,mp-1074,RbSi,64,P-43n,1.3488,False,False,-11.47164596046875,-3.244039375625,-11.47164596046875,
+div_064_metal_TlTe,diversity,mp-2048,TlTe,64,P4_2/nmc,0.0,True,False,-3.0159770996875,-3.0159770996875,,
+div_072_gap_P2PbO6,diversity,mp-3476,P2PbO6,72,P2_1/c,4.4803,False,False,-14.452098825694444,-6.943630538472222,-14.452098825694444,
+div_072_metal_Hf3(VGa2)2,diversity,mp-1200384,Hf3(VGa2)2,72,Pnma,0.0,True,False,-7.097734902083333,-7.097734902083333,,
+div_080_gap_Mn7SiO12,diversity,mp-3224,Mn7SiO12,80,I4_1/acd,0.4887,False,True,-7.68761621525,-7.68761621525,,
+div_080_metal_Na3Li3Ti2F12,diversity,mp-14457,Na3Li3Ti2F12,80,Ia-3d,0.0,True,True,-5.468599167875,-5.468599167875,,

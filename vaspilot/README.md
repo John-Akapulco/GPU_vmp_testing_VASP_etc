@@ -1,5 +1,9 @@
 # VASPilot sur vm1-ic2mp
 
+> **Mis de côté.** Ce dossier ne sert pas à l'étude de performance, qui n'utilise que `benchmark/`.
+> VASPilot a besoin d'un LLM : une API en ligne est payante et reçoit les consignes et les résultats
+> des outils, tandis qu'un LLM local occuperait un GPU partagé. Voir le [README principal](../README.md).
+
 [VASPilot](https://github.com/JiaxuanLiu-Arsko/VASPilot) pilote VASP à l'aide d'agents
 (CrewAI) qui appellent des outils exposés par un serveur MCP. Ces outils recherchent des
 structures dans Materials Project, génèrent les entrées, soumettent à Slurm, suivent les jobs

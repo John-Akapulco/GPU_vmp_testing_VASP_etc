@@ -22,8 +22,8 @@ indique à pymatgen les POTCAR de `/opt/vasp/POTCAR` via `psp/POT_GGA_PAW_PBE_54
 | Étape | Commande | Résultat |
 |---|---|---|
 | 1. Structures | `python scripts/01_fetch_structures.py` | `structures/*.json`, `structures/manifest.csv` |
-| 2. Entrées | `python scripts/02_make_inputs.py --variants g1` | `runs/<fonct>_<calcul>/<label>/<variante>/` |
-| 3. Soumission | `python scripts/03_submit.py pbe_sp r2scan_sp --variant g1` | job array Slurm, un calcul à la fois |
+| 2. Entrées | `python scripts/02_make_inputs.py --variants g1 --family scaling` | `runs/<fonct>_<calcul>/<label>/<variante>/` |
+| 3. Soumission | `python scripts/03_submit.py pbe_sp r2scan_sp --variant g1 --family scaling` | job array Slurm, un calcul à la fois |
 | 4. Analyse | `python scripts/04_analyze.py` | `results/results.csv`, `summary.txt`, graphiques |
 
 Toutes les étapes peuvent être relancées : les calculs terminés ne sont ni régénérés ni resoumis.
@@ -48,7 +48,7 @@ Variantes : `g1` (1 GPU), `g2k1` (2 GPU, KPAR=1), `g2k2` (2 GPU, KPAR=2).
 
 - **Séries d'échelle** (même chimie, supercellules) : Si (mp-149) 2→64 atomes,
   Al (mp-134) 1→64, MgO (mp-1265) 2→64.
-- **Jeu de diversité** : pour 1, 2, 3, 4, 6, 8, 10, 12, 16, 20, 24, 32, 40, 48, 56, 64, 72, 80 atomes,
+- **Jeu de diversité** (reporté : téléchargé mais non calculé pour l'instant, d'où `--family scaling`) : pour 1, 2, 3, 4, 6, 8, 10, 12, 16, 20, 24, 32, 40, 48, 56, 64, 72, 80 atomes,
   un matériau stable à gap > 0,3 eV et un métal, choisis de façon déterministe
   (au plus 4 éléments, sans terres rares, actinides ni W).
 - Ajouts libres : `01_fetch_structures.py --ids mp-19017 mp-2657`.
