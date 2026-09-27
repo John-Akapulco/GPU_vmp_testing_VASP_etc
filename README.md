@@ -7,8 +7,9 @@ de 1 à 64 atomes : pour l'instant, seules les séries d'échelle (Si, Al, MgO) 
 de géométrie. Chacun suit les deux méthodologies de Materials Project : **PBE** (GGA/GGA+U)
 et **r2SCAN**.
 
-> **État : protocole proposé, en attente de validation.** Aucun calcul de l'étude n'a encore
-> été lancé. Seul un test de validation de la chaîne (5 petits calculs, 1 à 2 atomes) a tourné.
+> **État au 27/09/2026 :** phases 0 à 3 terminées (1 GPU, 14 structures × 4 séries, répétitions) ;
+> phase 4 (2 GPU) en cours ; phonons PBE de Si, Al et MgO soumis. Les tableaux ci-dessous sont
+> provisoires pour la partie 2 GPU.
 
 ## Contenu du dépôt
 
@@ -192,8 +193,147 @@ Pour chaque calcul :
 
 ## Résultats
 
-*Tableaux à venir, un par phase.*
+Produits par `benchmark/scripts/04_analyze.py`. Données brutes : [`benchmark/results/results.csv`](benchmark/results/results.csv) ;
+résumé complet : [`benchmark/results/summary.txt`](benchmark/results/summary.txt).
+
+### Temps sur 1 GPU (variante `g1`, phases 2 et 3)
+
+Temps total : Elapsed time de l'OUTCAR. Mémoire GPU : pic relevé par `nvidia-smi`.
+ΔE : énergie par atome moins l'énergie MP non corrigée de la même fonctionnelle.
 
 | Série | Composé | Atomes | NKPTS | NBANDS | Pas SCF | Pas ioniques | s / pas SCF | Temps total (s) | Mémoire GPU (Go) | ΔE vs MP (meV/at) |
 |---|---|---|---|---|---|---|---|---|---|---|
-| | | | | | | | | | | |
+| `pbe_sp` | Al | 1 | 56 | 5 | 10 | 1 | 0,99 | 14,3 | 2,8 | -0,5 |
+| `pbe_sp` | Al | 4 | 20 | 11 | 10 | 1 | 0,96 | 13,3 | 2,9 | -2,2 |
+| `pbe_sp` | Al | 32 | 4 | 75 | 10 | 1 | 2,78 | 34,2 | 3,3 | -22,1 |
+| `pbe_sp` | Al | 64 | 3 | 148 | 12 | 1 | 6,17 | 83,2 | 4,3 | -3,8 |
+| `pbe_sp` | MgO | 2 | 56 | 12 | 12 | 1 | 2,53 | 36,1 | 2,9 | 59,9 |
+| `pbe_sp` | MgO | 8 | 20 | 35 | 14 | 1 | 3,44 | 50,9 | 2,9 | 59,9 |
+| `pbe_sp` | MgO | 16 | 20 | 72 | 13 | 1 | 6,89 | 97,1 | 3,2 | 59,9 |
+| `pbe_sp` | MgO | 32 | 12 | 144 | 13 | 1 | 10,09 | 138,4 | 3,6 | 59,9 |
+| `pbe_sp` | MgO | 64 | 4 | 287 | 13 | 1 | 12,32 | 163,4 | 4,3 | 59,9 |
+| `pbe_sp` | Si | 2 | 29 | 9 | 11 | 1 | 1,05 | 14,9 | 2,9 | 3,4 |
+| `pbe_sp` | Si | 8 | 10 | 23 | 12 | 1 | 1,27 | 18,2 | 3,0 | 1,9 |
+| `pbe_sp` | Si | 16 | 12 | 46 | 12 | 1 | 2,75 | 39,5 | 3,2 | 1,8 |
+| `pbe_sp` | Si | 32 | 9 | 91 | 12 | 1 | 4,75 | 69,3 | 3,8 | 2,4 |
+| `pbe_sp` | Si | 64 | 4 | 180 | 12 | 1 | 7,46 | 109,6 | 5,2 | 4,0 |
+| `pbe_relax` | Al | 1 | 35 | 5 | 13 | 3 | 0,68 | 14,3 | 2,8 | 18,1 |
+| `pbe_relax` | Al | 4 | 20 | 11 | 10 | 1 | 0,89 | 12,4 | 2,9 | -19,1 |
+| `pbe_relax` | Al | 32 | 4 | 75 | 14 | 3 | 2,68 | 57,3 | 3,3 | -22,3 |
+| `pbe_relax` | Al | 64 | 3 | 148 | 16 | 3 | 5,50 | 122,1 | 4,3 | -5,2 |
+| `pbe_relax` | MgO | 2 | 35 | 12 | 23 | 3 | 1,69 | 45,5 | 2,9 | 50,4 |
+| `pbe_relax` | MgO | 8 | 10 | 35 | 25 | 3 | 2,06 | 59,5 | 2,9 | 50,4 |
+| `pbe_relax` | MgO | 16 | 12 | 72 | 24 | 3 | 4,63 | 127,1 | 3,1 | 50,4 |
+| `pbe_relax` | MgO | 32 | 9 | 144 | 24 | 3 | 7,89 | 218,0 | 3,5 | 50,4 |
+| `pbe_relax` | MgO | 64 | 4 | 287 | 24 | 3 | 11,13 | 308,7 | 4,3 | 50,4 |
+| `pbe_relax` | Si | 2 | 20 | 9 | 19 | 3 | 0,74 | 19,5 | 2,9 | 4,6 |
+| `pbe_relax` | Si | 8 | 10 | 23 | 20 | 3 | 1,20 | 31,3 | 3,0 | 2,5 |
+| `pbe_relax` | Si | 16 | 12 | 46 | 20 | 3 | 2,72 | 69,2 | 3,2 | 2,4 |
+| `pbe_relax` | Si | 32 | 9 | 91 | 20 | 3 | 4,57 | 117,7 | 3,8 | 2,4 |
+| `pbe_relax` | Si | 64 | 4 | 180 | 20 | 3 | 6,68 | 175,2 | 5,1 | 2,5 |
+| `r2scan_sp` | Al | 1 | 84 | 5 | 11 | 1 | 3,37 | 39,5 | 2,9 | 1,5 |
+| `r2scan_sp` | Al | 4 | 35 | 11 | 13 | 1 | 3,75 | 49,0 | 3,0 | -1,7 |
+| `r2scan_sp` | Al | 32 | 10 | 75 | 15 | 1 | 12,66 | 180,9 | 4,1 | -0,1 |
+| `r2scan_sp` | Al | 64 | 12 | 148 | 20 | 1 | 33,72 | 653,8 | 7,6 | -1,5 |
+| `r2scan_sp` | MgO | 2 | 16 | 12 | 15 | 1 | 1,97 | 30,9 | 2,9 | 0,9 |
+| `r2scan_sp` | MgO | 8 | 10 | 35 | 16 | 1 | 4,88 | 76,0 | 3,0 | 1,8 |
+| `r2scan_sp` | MgO | 16 | 12 | 72 | 16 | 1 | 11,13 | 172,7 | 3,2 | 1,8 |
+| `r2scan_sp` | MgO | 32 | 9 | 144 | 18 | 1 | 19,60 | 337,9 | 3,9 | 1,8 |
+| `r2scan_sp` | MgO | 64 | 4 | 287 | 17 | 1 | 29,44 | 469,7 | 4,8 | 1,8 |
+| `r2scan_sp` | Si | 2 | 20 | 9 | 13 | 1 | 1,75 | 24,4 | 3,0 | 2,8 |
+| `r2scan_sp` | Si | 8 | 10 | 23 | 13 | 1 | 3,25 | 42,1 | 3,2 | -0,9 |
+| `r2scan_sp` | Si | 16 | 12 | 46 | 14 | 1 | 7,35 | 101,4 | 3,6 | -1,1 |
+| `r2scan_sp` | Si | 32 | 9 | 91 | 14 | 1 | 13,34 | 183,5 | 4,6 | -1,2 |
+| `r2scan_sp` | Si | 64 | 4 | 180 | 14 | 1 | 23,59 | 324,2 | 7,0 | -1,2 |
+| `r2scan_relax` | Al | 1 | 84 | 5 | 20 | 3 | 4,66 | 101,3 | 3,0 | -3,0 |
+| `r2scan_relax` | Al | 4 | 35 | 11 | 27 | 4 | 5,29 | 166,0 | 3,1 | -6,5 |
+| `r2scan_relax` | Al | 32 | 10 | 75 | 26 | 3 | 21,37 | 593,6 | 5,1 | -6,1 |
+| `r2scan_relax` | Al | 64 | 12 | 148 | 31 | 3 | 51,15 | 1943,3 | 12,2 | -6,1 |
+| `r2scan_relax` | MgO | 2 | 16 | 12 | 21 | 2 | 3,07 | 66,4 | 3,0 | 0,5 |
+| `r2scan_relax` | MgO | 8 | 10 | 35 | 31 | 3 | 7,89 | 270,4 | 3,1 | 1,2 |
+| `r2scan_relax` | MgO | 16 | 12 | 72 | 34 | 3 | 17,40 | 696,3 | 3,6 | 1,2 |
+| `r2scan_relax` | MgO | 32 | 9 | 144 | 39 | 3 | 31,55 | 1528,1 | 5,0 | 1,1 |
+| `r2scan_relax` | MgO | 64 | 4 | 287 | 46 | 3 | 50,40 | 2863,9 | 6,5 | 1,1 |
+| `r2scan_relax` | Si | 2 | 20 | 9 | 13 | 1 | 2,60 | 31,2 | 3,1 | 2,4 |
+| `r2scan_relax` | Si | 8 | 10 | 23 | 18 | 2 | 5,32 | 92,2 | 3,3 | -1,5 |
+| `r2scan_relax` | Si | 16 | 12 | 46 | 19 | 2 | 11,79 | 215,1 | 4,1 | -1,7 |
+| `r2scan_relax` | Si | 32 | 9 | 91 | 19 | 2 | 21,97 | 397,0 | 5,9 | -1,8 |
+| `r2scan_relax` | Si | 64 | 4 | 180 | 19 | 2 | 38,78 | 693,3 | 9,2 | -1,8 |
+
+![Temps total selon le nombre d'atomes](benchmark/results/t_total_vs_natoms.png)
+
+### Coût de r2SCAN par rapport à PBE (1 GPU)
+
+| Composé | Point simple, total | Point simple, par pas SCF | Optimisation, total | Optimisation, par pas SCF |
+|---|---|---|---|---|
+| Si (2 → 64 at) | 1,6 → 3,0× | 1,7 → 3,2× | 1,6 → 4,0× | 3,5 → 5,8× |
+| Al (1 → 64 at) | 2,8 → 7,9× | 3,4 → 5,5× | 7,1 → 15,9× | 6,9 → 9,3× |
+| MgO (2 → 64 at) | 0,9 → 2,9× | 0,8 → 2,4× | 1,5 → 9,3× | 1,8 → 4,5× |
+
+L'écart grandit avec la taille. En optimisation, r2SCAN demande aussi plus de pas SCF et ioniques.
+
+### Reproductibilité (phase 1, 3 répétitions, 1 GPU)
+
+| Série | Composé | Atomes | Temps moyen (s) | Écart relatif |
+|---|---|---|---|---|
+| `pbe_sp` | Si | 8 | 18,1 | 1,0 % |
+| `pbe_sp` | Al | 32 | 34,0 | 0,6 % |
+| `pbe_sp` | MgO | 32 | 138,1 | 0,2 % |
+| `r2scan_sp` | Si | 8 | 42,1 | 0,3 % |
+| `r2scan_sp` | Al | 32 | 180,7 | 0,2 % |
+| `r2scan_sp` | MgO | 32 | 337,0 | 0,5 % |
+
+Les temps sont reproductibles à 1 % près : les écarts de plus de quelques pour cent entre variantes sont significatifs.
+
+### Accélération sur 2 GPU (phase 4, provisoire)
+
+Temps total en 1 GPU divisé par le temps total en 2 GPU. `g2k1` : KPAR=1 ; `g2k2` : KPAR=2.
+Les systèmes de 64 atomes et une partie des 32 atomes sont en cours de calcul.
+
+| Série | Composé | Atomes | `g2k1` | `g2k2` |
+|---|---|---|---|---|
+| `pbe_sp` | Si | 2 | 1,12 | 1,49 |
+| `pbe_sp` | Si | 8 | 1,31 | 1,53 |
+| `pbe_sp` | Si | 16 | 1,45 | 1,66 |
+| `pbe_sp` | Si | 32 | 1,51 | 1,59 |
+| `pbe_sp` | Al | 1 | 1,03 | 1,50 |
+| `pbe_sp` | Al | 4 | 1,15 | 1,48 |
+| `pbe_sp` | Al | 32 | 1,50 | 1,57 |
+| `pbe_sp` | MgO | 2 | 1,30 | 1,70 |
+| `pbe_sp` | MgO | 8 | 1,45 | 1,79 |
+| `pbe_sp` | MgO | 16 | 1,54 | 1,84 |
+| `pbe_sp` | MgO | 32 | 1,59 | 1,84 |
+| `pbe_relax` | Si | 2 | 1,16 | 1,57 |
+| `pbe_relax` | Si | 8 | 1,38 | 1,62 |
+| `pbe_relax` | Si | 16 | 1,50 | 1,73 |
+| `pbe_relax` | Si | 32 | 1,54 | 1,61 |
+| `pbe_relax` | Al | 1 | 0,99 | 1,42 |
+| `pbe_relax` | Al | 4 | 1,08 | 1,42 |
+| `pbe_relax` | Al | 32 | 1,58 | 1,59 |
+| `pbe_relax` | MgO | 2 | 1,31 | 1,68 |
+| `pbe_relax` | MgO | 8 | 1,54 | 1,80 |
+| `pbe_relax` | MgO | 16 | 1,60 | 1,85 |
+| `pbe_relax` | MgO | 32 | 1,65 | 1,77 |
+| `r2scan_sp` | Si | 2 | 1,26 | 1,57 |
+| `r2scan_sp` | Si | 8 | 1,52 | 1,64 |
+| `r2scan_sp` | Si | 16 | 1,64 | 1,72 |
+| `r2scan_sp` | Al | 1 | 1,24 | 1,72 |
+| `r2scan_sp` | Al | 4 | 1,45 | 1,71 |
+| `r2scan_sp` | MgO | 2 | 1,42 | 1,58 |
+| `r2scan_sp` | MgO | 8 | 1,66 | 1,80 |
+| `r2scan_sp` | MgO | 16 | 1,75 | 1,87 |
+| `r2scan_relax` | Si | 2 | 1,37 | 1,57 |
+| `r2scan_relax` | Si | 8 | 1,52 | 1,69 |
+| `r2scan_relax` | Si | 16 | 1,62 | 1,72 |
+| `r2scan_relax` | Al | 1 | 1,19 | 1,75 |
+| `r2scan_relax` | Al | 4 | 1,57 | 1,77 |
+| `r2scan_relax` | Al | 32 | 1,62 | 1,65 |
+| `r2scan_relax` | MgO | 2 | 1,42 | 1,60 |
+| `r2scan_relax` | MgO | 8 | 1,46 | 1,85 |
+| `r2scan_relax` | MgO | 16 | 1,77 | 1,89 |
+| `r2scan_relax` | MgO | 32 | 1,79 | 1,80 |
+
+Premières tendances : l'accélération croît avec la taille (1,0 à 1,9×) ; KPAR=2 est toujours au moins
+aussi rapide que KPAR=1, avec un écart qui se réduit quand la maille grandit (et le nombre de points k diminue).
+
+![Accélération sur 2 GPU](benchmark/results/speedup_2gpu.png)
