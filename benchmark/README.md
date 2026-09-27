@@ -48,7 +48,7 @@ Variantes : `g1` (1 GPU), `g2k1` (2 GPU, KPAR=1), `g2k2` (2 GPU, KPAR=2).
 
 - **Séries d'échelle** (même chimie, supercellules) : Si (mp-149) 2→64 atomes,
   Al (mp-134) 1→64, MgO (mp-1265) 2→64.
-- **Jeu de diversité** (reporté : téléchargé mais non calculé pour l'instant, d'où `--family scaling`) : pour 1, 2, 3, 4, 6, 8, 10, 12, 16, 20, 24, 32, 40, 48, 56, 64, 72, 80 atomes,
+- **Jeu de diversité** (programmé après la dynamique moléculaire : points simples d'abord, avec `--family diversity`, puis optimisations) : pour 1, 2, 3, 4, 6, 8, 10, 12, 16, 20, 24, 32, 40, 48, 56, 64, 72, 80 atomes,
   un matériau stable à gap > 0,3 eV et un métal, choisis de façon déterministe
   (au plus 4 éléments, sans terres rares, actinides ni W).
 - Ajouts libres : `01_fetch_structures.py --ids mp-19017 mp-2657`.

@@ -3,13 +3,15 @@
 Ce dépôt rassemble le protocole et les tableaux de résultats d'une étude de performance
 de VASP 6.5.1 (version GPU) sur la machine partagée **vm1-ic2mp** (2 × NVIDIA H100).
 Les calculs portent sur des structures de [Materials Project](https://next-gen.materialsproject.org)
-de 1 à 64 atomes : pour l'instant, seules les séries d'échelle (Si, Al, MgO) sont retenues. Deux types de calcul sont testés : point simple (single point) et optimisation
+de 1 à 80 atomes : séries d'échelle (Si, Al, MgO, de 1 à 64 atomes), puis jeu de diversité (34 composés, de 1 à 80 atomes), programmé. Deux types de calcul sont testés : point simple (single point) et optimisation
 de géométrie. Chacun suit les deux méthodologies de Materials Project : **PBE** (GGA/GGA+U)
 et **r2SCAN**.
 
 > **État au 27/09/2026 :** phases 0 à 4 terminées (1 et 2 GPU, 14 structures × 4 séries, répétitions) ;
 > en cours : phonons PBE de Si, Al et MgO (phase 5) ; soumis à la suite : calculs simultanés sur
 > une GPU (phase 6), calibration de la dynamique moléculaire de LiN₃ (phase 7, étape 1).
+> Programmé ensuite, dans cet ordre : production MLFF de LiN₃ (après analyse de la calibration),
+> puis jeu de diversité, points simples (phase 8) et enfin optimisations (phase 9).
 
 ## Contenu du dépôt
 
@@ -84,8 +86,8 @@ total et le temps par pas ionique.
 
 ## Composés
 
-**Périmètre actuel : les séries d'échelle seules (14 structures).** Le jeu de diversité est
-conservé ci-dessous pour une étape ultérieure, mais il n'est pas calculé à ce stade.
+**Périmètre : les séries d'échelle (14 structures, phases 0 à 4), puis le jeu de diversité
+(34 structures, phases 8 et 9, programmées après la dynamique moléculaire).**
 
 ### Séries d'échelle (retenues)
 
@@ -101,7 +103,7 @@ du nombre d'atomes.
 Au total, 14 structures. En supercellule, la densité de points k par atome est conservée, comme
 dans la méthodologie MP : le nombre de points k diminue quand la maille grandit.
 
-### Jeu de diversité (reporté, non calculé)
+### Jeu de diversité (programmé, phases 8 et 9)
 
 Des matériaux réels choisis dans Materials Project, pour couvrir des chimies et des tailles de
 maille variées. Pour chaque taille (1, 2, 3, 4, 6, 8, 10, 12, 16, 20, 24, 32, 40, 48, 56, 64, 72
@@ -168,11 +170,13 @@ en même temps.
 | 4 | Passage à 2 GPU : les quatre séries, `g2k1` et `g2k2` | 2 | 112 | fait |
 | 5 | Phonons PBE (phonopy) de Si, Al et MgO, `g1` puis `g2k1` | 1, 2 | 6 chaînes | en cours |
 | 6 | Calculs simultanés sur une GPU (N = 1 à 8, avec et sans MPS) | 1 | 26 lots, 100 calculs | soumis |
-| 7 | Dynamique moléculaire NVT de LiN₃ (144 at.), AIMD et MLFF | 1 | étape 1 : 4 calculs | étape 1 soumise |
+| 7 | Dynamique moléculaire NVT de LiN₃ (144 at.), AIMD et MLFF | 1 | étape 1 : 4 calculs ; étape 2 : 14 segments | étape 1 soumise ; étape 2 après analyse de la calibration |
+| 8 | Jeu de diversité, points simples PBE et r2SCAN (Si 2 at. exclu, déjà calculé) | 1 | 68 | entrées prêtes, soumission après la phase 7 |
+| 9 | Jeu de diversité, optimisations PBE et r2SCAN | 1 | 68 | après la phase 8 |
 
-Toutes les phases portent sur les 14 structures des séries d'échelle (option `--family scaling`
-de `02_make_inputs.py` et `03_submit.py`). Le jeu de diversité pourra faire l'objet d'une phase
-ultérieure.
+Les phases 0 à 4 portent sur les 14 structures des séries d'échelle (option `--family scaling`
+de `02_make_inputs.py` et `03_submit.py`) ; les phases 8 et 9 sur le jeu de diversité
+(`--family diversity`), sur 1 GPU, un calcul à la fois, du plus petit au plus grand système.
 
 Chaque phase est soumise séparément, du plus petit au plus grand système. Les phases à 2 GPU
 occupent toute la machine : elles sont lancées le soir ou la nuit. Les phases 5 à 7 sont décrites
@@ -187,7 +191,7 @@ LiN₃ (mp-2659, C2/m, gap PBE 3,64 eV) en supercellule 2×3×3 de la maille con
 | Étape | Calculs | But |
 |---|---|---|
 | 1. Calibration | AIMD pure, 200 pas à 300 K, avec `vasp_gam` et `vasp_std` ; MLFF (`ML_MODE = train`) sur le 1er ps avec 1 et 16 threads CPU | coût d'un pas DFT, gain de `vasp_gam`, part CPU du MLFF, proportion de pas DFT |
-| 2. Production (après accord) | MLFF, 15 ps de 300 à 500 K, en 15 segments de 1 ps | ps/jour, évolution de la proportion de pas DFT avec la température |
+| 2. Production (accord donné ; soumise après analyse de la calibration, qui fixe le nombre de threads) | MLFF, 15 ps de 300 à 500 K, en 15 segments de 1 ps (le 1er est fait par la calibration) | ps/jour, évolution de la proportion de pas DFT avec la température |
 | 3. Analyse | performances et physique (distribution radiale N–N, décomposition éventuelle des azotures) | comparaison avec le coût d'une AIMD pure |
 
 ## Mesures relevées
