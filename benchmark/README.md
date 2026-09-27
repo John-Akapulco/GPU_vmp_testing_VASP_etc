@@ -100,3 +100,34 @@ Ce test mesure ce que rapporte le lancement de N calculs identiques en même tem
   3,9 h au plus sur 1 GPU.
 - Mesures : gain de débit N × t_ref / T_lot (idéal : N), ralentissement de chaque calcul,
   temps par pas SCF, mémoire et utilisation GPU, écart d'énergie avec la référence (doit être nul).
+
+## Dynamique moléculaire de LiN₃ (AIMD et MLFF)
+
+LiN₃ (mp-2659) en supercellule 2×3×3 conventionnelle, 144 atomes (Li₃₆N₁₀₈), POTCAR `Li_sv` et `N`.
+
+| Étape | Commande | Résultat |
+|---|---|---|
+| 11. Préparation | `python scripts/08_aimd_setup.py` | `structures/aimd_LiN3_144.json`, `runs_aimd/<nom>/input/`, `aimd.json` |
+| 12. Calibration | `python scripts/08_aimd_setup.py --submit calib [--after JOB]` | 4 jobs à 1 GPU enchaînés |
+| 13. Production | `python scripts/08_aimd_setup.py --submit production` | `nvt_ml_g1`, segments 2 à 15 |
+
+Paramètres communs : PBE+D3(BJ) (`IVDW = 12`), `ENCUT = 520`, `PREC = Normal`, `EDIFF = 1e-6`,
+`ALGO = Fast`, `LREAL = Auto`, `ISPIN = 2`, `ISYM = 0`, point Γ seul ; NVT, thermostat de Langevin
+(`MDALGO = 3`, `LANGEVIN_GAMMA = 10 10`, graine fixée), `POTIM = 1` fs. MLFF : `ML_LMLFF = .TRUE.`,
+`ML_MODE = train`, autres paramètres ML par défaut.
+
+| Calcul | Type | Exécutable | Threads CPU | Longueur |
+|---|---|---|---|---|
+| `calib_dft_gam_g1` | AIMD pure | `vasp_gam` | 1 | 200 pas à 300 K |
+| `calib_dft_std_g1` | AIMD pure | `vasp_std` (point Γ) | 1 | 200 pas à 300 K |
+| `calib_ml_omp1_g1` | MLFF | `vasp_gam` | 1 | 1er ps (300 → 313 K) |
+| `nvt_ml_g1` | MLFF | `vasp_gam` | 16 | 15 ps, 300 → 500 K (calibration : 1er ps) |
+
+Une dynamique est découpée en segments de 1 ps (`scripts/aimd_pipeline.py`, lancé par
+`run_aimd.slurm`) : chaque segment repart du CONTCAR (positions et vitesses) et du `ML_ABN` du
+précédent, avec sa portion de la rampe `TEBEG`/`TEEND`. Un segment terminé n'est pas relancé.
+Relevés par segment (`seg-XX/timing.json`, bilan dans `aimd_run.json`) : temps mur, s/pas, pas DFT
+et pas prédits (`ML_LOGFILE`), pas SCF par pas DFT, mémoire et utilisation GPU.
+
+La partie MLFF tourne sur CPU (MPI et OpenMP) ; seuls les pas DFT utilisent la GPU. D'où la
+comparaison 1 et 16 threads (`OMP_NUM_THREADS`, `--cpus-per-task`).

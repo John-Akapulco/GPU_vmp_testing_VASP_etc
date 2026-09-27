@@ -8,8 +8,9 @@ de géométrie. Chacun suit les deux méthodologies de Materials Project : **PBE
 et **r2SCAN**.
 
 > **État au 27/09/2026 :** phases 0 à 3 terminées (1 GPU, 14 structures × 4 séries, répétitions) ;
-> phase 4 (2 GPU) en cours ; phonons PBE de Si, Al et MgO soumis. Les tableaux ci-dessous sont
-> provisoires pour la partie 2 GPU.
+> phase 4 (2 GPU) en cours ; soumis à la suite : phonons PBE de Si, Al et MgO (phase 5), calculs
+> simultanés sur une GPU (phase 6), calibration de la dynamique moléculaire de LiN₃ (phase 7, étape 1).
+> Les tableaux ci-dessous sont provisoires pour la partie 2 GPU.
 
 ## Contenu du dépôt
 
@@ -18,6 +19,7 @@ et **r2SCAN**.
 | [`benchmark/`](benchmark/) | Scripts de l'étude : récupération des structures MP, génération des entrées, soumission Slurm, analyse. Installation : `benchmark/setup.sh` |
 | [`vaspilot/`](vaspilot/) | **Mis de côté, hors de l'étude.** [VASPilot](https://github.com/JiaxuanLiu-Arsko/VASPilot) adapté à cette machine : agents qui pilotent VASP en langage naturel. Voir la note ci-dessous |
 | [`results/`](results/) | Tableaux de résultats finaux, un par phase |
+| [`report/`](report/) | Rapport en anglais (LaTeX et PDF, compilé avec `tectonic report/report.tex`) |
 
 Les calculs eux-mêmes (OUTCAR, etc.) ne sont pas versionnés : ils restent sur vm1-ic2mp.
 Les POTCAR, sous licence VASP, ne sont jamais versionnés.
@@ -156,23 +158,36 @@ en même temps.
 
 ## Plan
 
-| Phase | Contenu | GPU | Calculs |
-|---|---|---|---|
-| 0 | Validation de la chaîne sur 1 à 2 atomes | 1 | 5 (fait) |
-| 1 | Reproductibilité : Si 8, MgO 32 et Al 32 en `pbe_sp` et `r2scan_sp`, 3 répétitions chacun | 1 | 18 |
-| 2 | Points simples, séries d'échelle, PBE et r2SCAN | 1 | 28 |
-| 3 | Optimisations, séries d'échelle, PBE et r2SCAN | 1 | 28 |
-| 4 | Passage à 2 GPU : séries d'échelle en point simple, PBE et r2SCAN, `g2k1` et `g2k2` | 2 | ≤ 56 |
-| 5 | Optimisations à 2 GPU sur les trois structures de 64 atomes (option) | 2 | 6 à 12 |
+| Phase | Contenu | GPU | Calculs | État |
+|---|---|---|---|---|
+| 0 | Validation de la chaîne sur 1 à 2 atomes | 1 | 5 | fait |
+| 1 | Reproductibilité : Si 8, MgO 32 et Al 32 en `pbe_sp` et `r2scan_sp`, 3 répétitions chacun | 1 | 18 | fait |
+| 2 | Points simples, séries d'échelle, PBE et r2SCAN | 1 | 28 | fait |
+| 3 | Optimisations, séries d'échelle, PBE et r2SCAN | 1 | 28 | fait |
+| 4 | Passage à 2 GPU : les quatre séries, `g2k1` et `g2k2` | 2 | 112 | en cours |
+| 5 | Phonons PBE (phonopy) de Si, Al et MgO, `g1` puis `g2k1` | 1, 2 | 6 chaînes | soumis |
+| 6 | Calculs simultanés sur une GPU (N = 1 à 8, avec et sans MPS) | 1 | 26 lots, 100 calculs | soumis |
+| 7 | Dynamique moléculaire NVT de LiN₃ (144 at.), AIMD et MLFF | 1 | étape 1 : 4 calculs | étape 1 soumise |
 
 Toutes les phases portent sur les 14 structures des séries d'échelle (option `--family scaling`
 de `02_make_inputs.py` et `03_submit.py`). Le jeu de diversité pourra faire l'objet d'une phase
 ultérieure.
 
-Chaque phase est soumise séparément, du plus petit au plus grand système. Les durées de la phase 2
-permettront d'estimer celles des phases suivantes avant de les lancer. Les phases 4 et 5 occupent
-toute la machine : elles seront lancées le soir ou le week-end, après avoir prévenu les autres
-utilisateurs.
+Chaque phase est soumise séparément, du plus petit au plus grand système. Les phases à 2 GPU
+occupent toute la machine : elles sont lancées le soir ou la nuit. Les phases 5 à 7 sont décrites
+dans [`benchmark/README.md`](benchmark/README.md).
+
+### Phase 7 : dynamique moléculaire de LiN₃
+
+LiN₃ (mp-2659, C2/m, gap PBE 3,64 eV) en supercellule 2×3×3 de la maille conventionnelle :
+144 atomes (Li₃₆N₁₀₈), 11,0 × 9,8 × 14,5 Å. PBE+D3(BJ), polarisé en spin, ENCUT 520 eV, point Γ seul
+(`vasp_gam`), NVT avec thermostat de Langevin, pas de 1 fs, 1 GPU.
+
+| Étape | Calculs | But |
+|---|---|---|
+| 1. Calibration | AIMD pure, 200 pas à 300 K, avec `vasp_gam` et `vasp_std` ; MLFF (`ML_MODE = train`) sur le 1er ps avec 1 et 16 threads CPU | coût d'un pas DFT, gain de `vasp_gam`, part CPU du MLFF, proportion de pas DFT |
+| 2. Production (après accord) | MLFF, 15 ps de 300 à 500 K, en 15 segments de 1 ps | ps/jour, évolution de la proportion de pas DFT avec la température |
+| 3. Analyse | performances et physique (distribution radiale N–N, décomposition éventuelle des azotures) | comparaison avec le coût d'une AIMD pure |
 
 ## Mesures relevées
 

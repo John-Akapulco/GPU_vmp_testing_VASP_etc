@@ -6,6 +6,7 @@ __pycache__/
 # Calculs : trop volumineux, seuls les tableaux de results/ sont versionnés
 benchmark/runs/
 benchmark/runs_conc/
+benchmark/runs_aimd/
 benchmark/logs/
 benchmark/lists/
 benchmark/phonons/
