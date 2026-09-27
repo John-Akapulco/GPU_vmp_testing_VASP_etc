@@ -345,8 +345,74 @@ scaling exponents.}
 % ---------------------------------------------------------------------------
 \section{Discussion and Recommendations}
 \label{sec:discussion}
-\todo{Practical guidance for users of the node: when to request two GPUs, choice of KPAR,
-memory headroom, expected run times.}
+\todo{Update the figures below with the final two-GPU results.}
+
+\subsection{Are these GPUs suited to VASP?}
+\label{sec:disc-suitability}
+
+The results do not show that the H100 GPUs are unsuited to VASP. They show that systems of 1 to
+64 atoms leave these GPUs largely underused.
+
+\paragraph{What the measurements show.}
+\begin{itemize}
+  \item \textbf{Absolute times are short.} A PBE single point on 64-atom MgO takes \SI{163}{s}
+        on one GPU, and a full r\textsuperscript{2}SCAN relaxation of the same cell takes
+        \SI{48}{min}.
+  \item \textbf{The GPUs are lightly loaded.} On one GPU, the mean utilization reported by
+        \texttt{nvidia-smi} ranges from 10 to \SI{50}{\percent}, and the peak GPU memory from
+        3 to \SI{12}{GB} out of \SI{94}{GB}. The utilization metric is the fraction of time
+        during which at least one kernel is running, sampled every \SI{2}{s}; it does not
+        measure how much of the device each kernel occupies, so the actual occupancy is lower
+        still.
+  \item \textbf{Two GPUs bring a modest gain.} The speedup ranges from 1.0 to $1.9\times$
+        (preliminary), grows with system size, and vanishes for the 1-atom cell.
+\end{itemize}
+
+\paragraph{Interpretation.} This is the expected behavior of plane-wave DFT on GPUs. For small
+cells, fast Fourier transforms and dense matrix operations are too small to fill an H100, and
+run time is dominated by latencies: kernel launches, synchronizations, host--device transfers,
+and, with two GPUs, inter-GPU communication. The GPU port becomes efficient for systems with a
+few hundred atoms, or with many bands and $k$-points.
+
+\paragraph{Limits of the present study.}
+\begin{itemize}
+  \item \textbf{No CPU reference.} Only the GPU (OpenACC) build of VASP is installed on the
+        node, so no CPU-only timings were measured. The present data therefore cannot support
+        any claim about GPU versus CPU performance.
+  \item \textbf{The CPU was not benchmarked.} Each calculation uses one MPI rank per GPU with
+        \texttt{OMP\_NUM\_THREADS}=1: a single core does work out of the 16 allocated per GPU,
+        which is the normal setup for the GPU build.
+  \item \textbf{No large systems.} The largest cell has 64 atoms, below the size range where
+        the GPU port is expected to pay off.
+\end{itemize}
+
+\subsection{Recommendations for users of the node}
+\label{sec:disc-recommendations}
+
+\begin{itemize}
+  \item For cells of up to 64 atoms, one GPU per calculation is sufficient. Running two
+        independent calculations, one per GPU, yields more throughput than one calculation on
+        two GPUs.
+  \item When two GPUs are used, \texttt{KPAR}=2 was at least as fast as \texttt{KPAR}=1 in
+        every case measured so far, provided the system has at least two irreducible
+        $k$-points.
+  \item Memory is not a constraint in this size range: the H100s leave ample room for much
+        larger systems.
+\end{itemize}
+
+\subsection{Further tests}
+\label{sec:disc-further}
+
+Three tests would settle the question of hardware suitability:
+\begin{enumerate}
+  \item \textbf{CPU reference.} Build a CPU version of VASP 6.5.1 and rerun a subset of the
+        calculations on 16 and 32 cores.
+  \item \textbf{Larger systems.} Extend the Si and MgO series to 128, 256, and 512 atoms, where
+        the GPU port should be efficient.
+  \item \textbf{Throughput.} Run several small calculations concurrently on the same GPU
+        (NVIDIA Multi-Process Service) to check whether utilization and aggregate throughput
+        increase.
+\end{enumerate}
 
 \section{Conclusion}
 \label{sec:conclusion}
