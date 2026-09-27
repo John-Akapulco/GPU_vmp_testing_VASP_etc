@@ -332,7 +332,66 @@ scaling exponents.}
 
 \subsection{Two GPUs: speedup and \texttt{KPAR}}
 \label{sec:res-2gpu}
-\todo{Final table and Fig.~speedup\_2gpu once phase 4 is complete.}
+
+All 112 two-GPU calculations completed, and all 56 two-GPU relaxations converged. Total energies
+agree with the one-GPU values to within \SI{0.01}{meV/atom}. Table~\ref{tab:speedup} and
+Fig.~\ref{fig:speedup} give the speedup over one GPU.
+
+\begin{table}[htbp]
+\centering
+\caption{Speedup on two GPUs (one-GPU total time divided by two-GPU total time). Bold: variant
+faster by more than \SI{2}{\percent}. Run-to-run spread is at most \SI{1}{\percent}
+(Section~\ref{sec:res-repro}).}
+\label{tab:speedup}
+\small
+\begin{tabular}{@{}lr cc cc cc cc@{}}
+\toprule
+ & & \multicolumn{2}{c}{PBE SP} & \multicolumn{2}{c}{PBE relax}
+ & \multicolumn{2}{c}{r\textsuperscript{2}SCAN SP} & \multicolumn{2}{c}{r\textsuperscript{2}SCAN relax} \\
+\cmidrule(lr){3-4}\cmidrule(lr){5-6}\cmidrule(lr){7-8}\cmidrule(l){9-10}
+ & Atoms & \texttt{g2k1} & \texttt{g2k2} & \texttt{g2k1} & \texttt{g2k2} & \texttt{g2k1} & \texttt{g2k2} & \texttt{g2k1} & \texttt{g2k2} \\
+\midrule
+Si & 2 & 1.12 & \textbf{1.49} & 1.16 & \textbf{1.57} & 1.26 & \textbf{1.57} & 1.37 & \textbf{1.57} \\
+Si & 8 & 1.31 & \textbf{1.52} & 1.38 & \textbf{1.62} & 1.52 & \textbf{1.64} & 1.52 & \textbf{1.69} \\
+Si & 16 & 1.45 & \textbf{1.66} & 1.50 & \textbf{1.73} & 1.64 & \textbf{1.72} & 1.62 & \textbf{1.72} \\
+Si & 32 & 1.51 & \textbf{1.59} & 1.54 & \textbf{1.61} & 1.63 & 1.61 & 1.61 & 1.59 \\
+Si & 64 & \textbf{1.66} & 1.60 & \textbf{1.66} & 1.60 & \textbf{1.66} & 1.57 & \textbf{1.57} & 1.54 \\
+\addlinespace
+Al & 1 & 1.03 & \textbf{1.50} & 0.99 & \textbf{1.42} & 1.24 & \textbf{1.72} & 1.19 & \textbf{1.75} \\
+Al & 4 & 1.15 & \textbf{1.48} & 1.08 & \textbf{1.42} & 1.45 & \textbf{1.71} & 1.57 & \textbf{1.77} \\
+Al & 32 & 1.49 & \textbf{1.56} & 1.58 & 1.59 & 1.62 & \textbf{1.68} & 1.62 & 1.65 \\
+Al & 64 & \textbf{1.67} & 1.47 & \textbf{1.68} & 1.50 & 1.69 & 1.69 & 1.57 & 1.55 \\
+\addlinespace
+MgO & 2 & 1.30 & \textbf{1.70} & 1.31 & \textbf{1.68} & 1.42 & \textbf{1.58} & 1.42 & \textbf{1.60} \\
+MgO & 8 & 1.45 & \textbf{1.79} & 1.54 & \textbf{1.80} & 1.66 & \textbf{1.80} & 1.46 & \textbf{1.85} \\
+MgO & 16 & 1.54 & \textbf{1.84} & 1.60 & \textbf{1.85} & 1.75 & \textbf{1.87} & 1.77 & \textbf{1.89} \\
+MgO & 32 & 1.59 & \textbf{1.84} & 1.65 & \textbf{1.77} & 1.79 & 1.78 & 1.79 & 1.80 \\
+MgO & 64 & 1.69 & \textbf{1.80} & 1.73 & \textbf{1.82} & 1.77 & \textbf{1.81} & 1.63 & \textbf{1.79} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.85\linewidth]{speedup_2gpu.png}
+  \caption{Speedup on two GPUs versus number of atoms, for \texttt{KPAR}=1 (\texttt{g2k1}) and
+  \texttt{KPAR}=2 (\texttt{g2k2}).}
+  \label{fig:speedup}
+\end{figure}
+
+\paragraph{Magnitude.} The speedup ranges from 0.99 to $1.79\times$ with \texttt{KPAR}=1 and from
+1.42 to $1.89\times$ with \texttt{KPAR}=2. Two GPUs never halve the run time.
+
+\paragraph{Choice of \texttt{KPAR}.} Up to 16 atoms, the cells have 10 to 84 irreducible
+$k$-points and few bands: distributing $k$-points (\texttt{KPAR}=2) is clearly faster than
+distributing bands and plane waves (\texttt{KPAR}=1), which brings almost nothing for the 1-atom
+Al cell. At 32 atoms the gap narrows: \texttt{KPAR}=2 stays ahead in most PBE cases, and both
+variants agree within \SI{3}{\percent} with r\textsuperscript{2}SCAN. At 64 atoms, \texttt{KPAR}=1
+becomes faster for Si (4 $k$-points) and for Al with PBE (3 $k$-points, split 2 + 1 between the
+GPUs with \texttt{KPAR}=2), while MgO (4 $k$-points) remains faster with \texttt{KPAR}=2. Over
+the 56 cases, \texttt{KPAR}=2 is faster in 42, \texttt{KPAR}=1 in 6 (all with 64 atoms), and the
+two agree within \SI{2}{\percent} in 8.
+
 
 \subsection{Agreement with Materials Project energies}
 \label{sec:res-energies}
@@ -345,7 +404,6 @@ scaling exponents.}
 % ---------------------------------------------------------------------------
 \section{Discussion and Recommendations}
 \label{sec:discussion}
-\todo{Update the figures below with the final two-GPU results.}
 
 \subsection{Are these GPUs suited to VASP?}
 \label{sec:disc-suitability}
@@ -364,8 +422,9 @@ The results do not show that the H100 GPUs are unsuited to VASP. They show that 
         during which at least one kernel is running, sampled every \SI{2}{s}; it does not
         measure how much of the device each kernel occupies, so the actual occupancy is lower
         still.
-  \item \textbf{Two GPUs bring a modest gain.} The speedup ranges from 1.0 to $1.9\times$
-        (preliminary), grows with system size, and vanishes for the 1-atom cell.
+  \item \textbf{Two GPUs bring a modest gain.} The speedup ranges from 1.0 to $1.9\times$,
+        generally grows with system size, and vanishes for the 1-atom cell with \texttt{KPAR}=1
+        (Section~\ref{sec:res-2gpu}).
 \end{itemize}
 
 \paragraph{Interpretation.} This is the expected behavior of plane-wave DFT on GPUs. For small
@@ -393,9 +452,10 @@ few hundred atoms, or with many bands and $k$-points.
   \item For cells of up to 64 atoms, one GPU per calculation is sufficient. Running two
         independent calculations, one per GPU, yields more throughput than one calculation on
         two GPUs.
-  \item When two GPUs are used, \texttt{KPAR}=2 was at least as fast as \texttt{KPAR}=1 in
-        every case measured so far, provided the system has at least two irreducible
-        $k$-points.
+  \item When two GPUs are used, prefer \texttt{KPAR}=2 for cells with many irreducible
+        $k$-points (here, up to about 32 atoms). With only 3 or 4 $k$-points (64-atom cells),
+        \texttt{KPAR}=1 can be as fast or faster, especially when the $k$-points do not split
+        evenly between the two GPUs.
   \item Memory is not a constraint in this size range: the H100s leave ample room for much
         larger systems.
 \end{itemize}

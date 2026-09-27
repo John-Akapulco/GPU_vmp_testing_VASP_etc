@@ -7,10 +7,9 @@ de 1 à 64 atomes : pour l'instant, seules les séries d'échelle (Si, Al, MgO) 
 de géométrie. Chacun suit les deux méthodologies de Materials Project : **PBE** (GGA/GGA+U)
 et **r2SCAN**.
 
-> **État au 27/09/2026 :** phases 0 à 3 terminées (1 GPU, 14 structures × 4 séries, répétitions) ;
-> phase 4 (2 GPU) en cours ; soumis à la suite : phonons PBE de Si, Al et MgO (phase 5), calculs
-> simultanés sur une GPU (phase 6), calibration de la dynamique moléculaire de LiN₃ (phase 7, étape 1).
-> Les tableaux ci-dessous sont provisoires pour la partie 2 GPU.
+> **État au 27/09/2026 :** phases 0 à 4 terminées (1 et 2 GPU, 14 structures × 4 séries, répétitions) ;
+> en cours : phonons PBE de Si, Al et MgO (phase 5) ; soumis à la suite : calculs simultanés sur
+> une GPU (phase 6), calibration de la dynamique moléculaire de LiN₃ (phase 7, étape 1).
 
 ## Contenu du dépôt
 
@@ -164,8 +163,8 @@ en même temps.
 | 1 | Reproductibilité : Si 8, MgO 32 et Al 32 en `pbe_sp` et `r2scan_sp`, 3 répétitions chacun | 1 | 18 | fait |
 | 2 | Points simples, séries d'échelle, PBE et r2SCAN | 1 | 28 | fait |
 | 3 | Optimisations, séries d'échelle, PBE et r2SCAN | 1 | 28 | fait |
-| 4 | Passage à 2 GPU : les quatre séries, `g2k1` et `g2k2` | 2 | 112 | en cours |
-| 5 | Phonons PBE (phonopy) de Si, Al et MgO, `g1` puis `g2k1` | 1, 2 | 6 chaînes | soumis |
+| 4 | Passage à 2 GPU : les quatre séries, `g2k1` et `g2k2` | 2 | 112 | fait |
+| 5 | Phonons PBE (phonopy) de Si, Al et MgO, `g1` puis `g2k1` | 1, 2 | 6 chaînes | en cours |
 | 6 | Calculs simultanés sur une GPU (N = 1 à 8, avec et sans MPS) | 1 | 26 lots, 100 calculs | soumis |
 | 7 | Dynamique moléculaire NVT de LiN₃ (144 at.), AIMD et MLFF | 1 | étape 1 : 4 calculs | étape 1 soumise |
 
@@ -300,55 +299,81 @@ L'écart grandit avec la taille. En optimisation, r2SCAN demande aussi plus de p
 
 Les temps sont reproductibles à 1 % près : les écarts de plus de quelques pour cent entre variantes sont significatifs.
 
-### Accélération sur 2 GPU (phase 4, provisoire)
+### Accélération sur 2 GPU (phase 4)
 
 Temps total en 1 GPU divisé par le temps total en 2 GPU. `g2k1` : KPAR=1 ; `g2k2` : KPAR=2.
-Les systèmes de 64 atomes et une partie des 32 atomes sont en cours de calcul.
+NKPTS : nombre de points k irréductibles. En gras : variante plus rapide de plus de 2 %.
+Les énergies sur 2 GPU sont identiques à celles sur 1 GPU (écart maximal 0,01 meV/atome).
 
-| Série | Composé | Atomes | `g2k1` | `g2k2` |
-|---|---|---|---|---|
-| `pbe_sp` | Si | 2 | 1,12 | 1,49 |
-| `pbe_sp` | Si | 8 | 1,31 | 1,53 |
-| `pbe_sp` | Si | 16 | 1,45 | 1,66 |
-| `pbe_sp` | Si | 32 | 1,51 | 1,59 |
-| `pbe_sp` | Al | 1 | 1,03 | 1,50 |
-| `pbe_sp` | Al | 4 | 1,15 | 1,48 |
-| `pbe_sp` | Al | 32 | 1,50 | 1,57 |
-| `pbe_sp` | MgO | 2 | 1,30 | 1,70 |
-| `pbe_sp` | MgO | 8 | 1,45 | 1,79 |
-| `pbe_sp` | MgO | 16 | 1,54 | 1,84 |
-| `pbe_sp` | MgO | 32 | 1,59 | 1,84 |
-| `pbe_relax` | Si | 2 | 1,16 | 1,57 |
-| `pbe_relax` | Si | 8 | 1,38 | 1,62 |
-| `pbe_relax` | Si | 16 | 1,50 | 1,73 |
-| `pbe_relax` | Si | 32 | 1,54 | 1,61 |
-| `pbe_relax` | Al | 1 | 0,99 | 1,42 |
-| `pbe_relax` | Al | 4 | 1,08 | 1,42 |
-| `pbe_relax` | Al | 32 | 1,58 | 1,59 |
-| `pbe_relax` | MgO | 2 | 1,31 | 1,68 |
-| `pbe_relax` | MgO | 8 | 1,54 | 1,80 |
-| `pbe_relax` | MgO | 16 | 1,60 | 1,85 |
-| `pbe_relax` | MgO | 32 | 1,65 | 1,77 |
-| `r2scan_sp` | Si | 2 | 1,26 | 1,57 |
-| `r2scan_sp` | Si | 8 | 1,52 | 1,64 |
-| `r2scan_sp` | Si | 16 | 1,64 | 1,72 |
-| `r2scan_sp` | Al | 1 | 1,24 | 1,72 |
-| `r2scan_sp` | Al | 4 | 1,45 | 1,71 |
-| `r2scan_sp` | MgO | 2 | 1,42 | 1,58 |
-| `r2scan_sp` | MgO | 8 | 1,66 | 1,80 |
-| `r2scan_sp` | MgO | 16 | 1,75 | 1,87 |
-| `r2scan_relax` | Si | 2 | 1,37 | 1,57 |
-| `r2scan_relax` | Si | 8 | 1,52 | 1,69 |
-| `r2scan_relax` | Si | 16 | 1,62 | 1,72 |
-| `r2scan_relax` | Al | 1 | 1,19 | 1,75 |
-| `r2scan_relax` | Al | 4 | 1,57 | 1,77 |
-| `r2scan_relax` | Al | 32 | 1,62 | 1,65 |
-| `r2scan_relax` | MgO | 2 | 1,42 | 1,60 |
-| `r2scan_relax` | MgO | 8 | 1,46 | 1,85 |
-| `r2scan_relax` | MgO | 16 | 1,77 | 1,89 |
-| `r2scan_relax` | MgO | 32 | 1,79 | 1,80 |
+| Série | Composé | Atomes | NKPTS | `g2k1` | `g2k2` |
+|---|---|---|---|---|---|
+| `pbe_sp` | Si | 2 | 29 | 1,12 | **1,49** |
+| `pbe_sp` | Si | 8 | 10 | 1,31 | **1,52** |
+| `pbe_sp` | Si | 16 | 12 | 1,45 | **1,66** |
+| `pbe_sp` | Si | 32 | 9 | 1,51 | **1,59** |
+| `pbe_sp` | Si | 64 | 4 | **1,66** | 1,60 |
+| `pbe_sp` | Al | 1 | 56 | 1,03 | **1,50** |
+| `pbe_sp` | Al | 4 | 20 | 1,15 | **1,48** |
+| `pbe_sp` | Al | 32 | 4 | 1,49 | **1,56** |
+| `pbe_sp` | Al | 64 | 3 | **1,67** | 1,47 |
+| `pbe_sp` | MgO | 2 | 56 | 1,30 | **1,70** |
+| `pbe_sp` | MgO | 8 | 20 | 1,45 | **1,79** |
+| `pbe_sp` | MgO | 16 | 20 | 1,54 | **1,84** |
+| `pbe_sp` | MgO | 32 | 12 | 1,59 | **1,84** |
+| `pbe_sp` | MgO | 64 | 4 | 1,69 | **1,80** |
+| `pbe_relax` | Si | 2 | 20 | 1,16 | **1,57** |
+| `pbe_relax` | Si | 8 | 10 | 1,38 | **1,62** |
+| `pbe_relax` | Si | 16 | 12 | 1,50 | **1,73** |
+| `pbe_relax` | Si | 32 | 9 | 1,54 | **1,61** |
+| `pbe_relax` | Si | 64 | 4 | **1,66** | 1,60 |
+| `pbe_relax` | Al | 1 | 35 | 0,99 | **1,42** |
+| `pbe_relax` | Al | 4 | 20 | 1,08 | **1,42** |
+| `pbe_relax` | Al | 32 | 4 | 1,58 | 1,59 |
+| `pbe_relax` | Al | 64 | 3 | **1,68** | 1,50 |
+| `pbe_relax` | MgO | 2 | 35 | 1,31 | **1,68** |
+| `pbe_relax` | MgO | 8 | 10 | 1,54 | **1,80** |
+| `pbe_relax` | MgO | 16 | 12 | 1,60 | **1,85** |
+| `pbe_relax` | MgO | 32 | 9 | 1,65 | **1,77** |
+| `pbe_relax` | MgO | 64 | 4 | 1,73 | **1,82** |
+| `r2scan_sp` | Si | 2 | 20 | 1,26 | **1,57** |
+| `r2scan_sp` | Si | 8 | 10 | 1,52 | **1,64** |
+| `r2scan_sp` | Si | 16 | 12 | 1,64 | **1,72** |
+| `r2scan_sp` | Si | 32 | 9 | 1,63 | 1,61 |
+| `r2scan_sp` | Si | 64 | 4 | **1,66** | 1,57 |
+| `r2scan_sp` | Al | 1 | 84 | 1,24 | **1,72** |
+| `r2scan_sp` | Al | 4 | 35 | 1,45 | **1,71** |
+| `r2scan_sp` | Al | 32 | 10 | 1,62 | **1,68** |
+| `r2scan_sp` | Al | 64 | 12 | 1,69 | 1,69 |
+| `r2scan_sp` | MgO | 2 | 16 | 1,42 | **1,58** |
+| `r2scan_sp` | MgO | 8 | 10 | 1,66 | **1,80** |
+| `r2scan_sp` | MgO | 16 | 12 | 1,75 | **1,87** |
+| `r2scan_sp` | MgO | 32 | 9 | 1,79 | 1,78 |
+| `r2scan_sp` | MgO | 64 | 4 | 1,77 | **1,81** |
+| `r2scan_relax` | Si | 2 | 20 | 1,37 | **1,57** |
+| `r2scan_relax` | Si | 8 | 10 | 1,52 | **1,69** |
+| `r2scan_relax` | Si | 16 | 12 | 1,62 | **1,72** |
+| `r2scan_relax` | Si | 32 | 9 | 1,61 | 1,59 |
+| `r2scan_relax` | Si | 64 | 4 | **1,57** | 1,54 |
+| `r2scan_relax` | Al | 1 | 84 | 1,19 | **1,75** |
+| `r2scan_relax` | Al | 4 | 35 | 1,57 | **1,77** |
+| `r2scan_relax` | Al | 32 | 10 | 1,62 | 1,65 |
+| `r2scan_relax` | Al | 64 | 12 | 1,57 | 1,55 |
+| `r2scan_relax` | MgO | 2 | 16 | 1,42 | **1,60** |
+| `r2scan_relax` | MgO | 8 | 10 | 1,46 | **1,85** |
+| `r2scan_relax` | MgO | 16 | 12 | 1,77 | **1,89** |
+| `r2scan_relax` | MgO | 32 | 9 | 1,79 | 1,80 |
+| `r2scan_relax` | MgO | 64 | 4 | 1,63 | **1,79** |
 
-Premières tendances : l'accélération croît avec la taille (1,0 à 1,9×) ; KPAR=2 est toujours au moins
-aussi rapide que KPAR=1, avec un écart qui se réduit quand la maille grandit (et le nombre de points k diminue).
+Constats :
+
+- L'accélération reste modeste : 0,99 à 1,79× avec `g2k1`, 1,42 à 1,89× avec `g2k2`.
+  Deux GPU ne divisent jamais le temps par deux.
+- Jusqu'à 16 atomes, KPAR=2 est nettement plus rapide que KPAR=1 : les mailles ont beaucoup de
+  points k (10 à 84) et peu de bandes, et répartir les bandes entre deux GPU apporte peu (Al 1 atome : 1,0×).
+- À 32 atomes, l'écart se réduit : KPAR=2 reste devant dans la plupart des cas PBE ; en r2SCAN,
+  les deux variantes sont à égalité à 3 % près.
+- À 64 atomes, KPAR=1 devient plus rapide pour Si (4 points k) et pour Al en PBE (3 points k,
+  répartis 2 + 1 entre les GPU avec KPAR=2) ; MgO (4 points k) reste plus rapide avec KPAR=2.
+- Sur les 56 cas : KPAR=2 plus rapide dans 42, KPAR=1 dans 6 (tous à 64 atomes), égalité à 2 % près dans 8.
 
 ![Accélération sur 2 GPU](benchmark/results/speedup_2gpu.png)

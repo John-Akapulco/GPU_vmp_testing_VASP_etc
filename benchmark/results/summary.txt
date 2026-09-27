@@ -1,4 +1,4 @@
-149 calculs trouvés, 148 terminés.
+180 calculs trouvés, 180 terminés.
 
 == Temps sur 1 GPU (variante g1) ==
 série          label                               at NKPTS NBANDS  SCF ion  t/SCF s  total s GPU Go dE meV/at
@@ -63,43 +63,59 @@ r2scan_sp      scal_Si_064                         64     4    180   14   1    2
 pbe_relax      scal_Al_001                          1 at  g2k1: 0.99x  g2k2: 1.42x
 pbe_relax      scal_Al_004                          4 at  g2k1: 1.08x  g2k2: 1.42x
 pbe_relax      scal_Al_032                         32 at  g2k1: 1.58x  g2k2: 1.59x
+pbe_relax      scal_Al_064                         64 at  g2k1: 1.68x  g2k2: 1.50x
 pbe_relax      scal_MgO_002                         2 at  g2k1: 1.31x  g2k2: 1.68x
 pbe_relax      scal_MgO_008                         8 at  g2k1: 1.54x  g2k2: 1.80x
 pbe_relax      scal_MgO_016                        16 at  g2k1: 1.60x  g2k2: 1.85x
 pbe_relax      scal_MgO_032                        32 at  g2k1: 1.65x  g2k2: 1.77x
+pbe_relax      scal_MgO_064                        64 at  g2k1: 1.73x  g2k2: 1.82x
 pbe_relax      scal_Si_002                          2 at  g2k1: 1.16x  g2k2: 1.57x
 pbe_relax      scal_Si_008                          8 at  g2k1: 1.38x  g2k2: 1.62x
 pbe_relax      scal_Si_016                         16 at  g2k1: 1.50x  g2k2: 1.73x
 pbe_relax      scal_Si_032                         32 at  g2k1: 1.54x  g2k2: 1.61x
+pbe_relax      scal_Si_064                         64 at  g2k1: 1.66x  g2k2: 1.60x
 pbe_sp         scal_Al_001                          1 at  g2k1: 1.03x  g2k2: 1.50x
 pbe_sp         scal_Al_004                          4 at  g2k1: 1.15x  g2k2: 1.48x
 pbe_sp         scal_Al_032                         32 at  g2k1: 1.50x  g2k2: 1.57x
+pbe_sp         scal_Al_064                         64 at  g2k1: 1.67x  g2k2: 1.47x
 pbe_sp         scal_MgO_002                         2 at  g2k1: 1.30x  g2k2: 1.70x
 pbe_sp         scal_MgO_008                         8 at  g2k1: 1.45x  g2k2: 1.79x
 pbe_sp         scal_MgO_016                        16 at  g2k1: 1.54x  g2k2: 1.84x
 pbe_sp         scal_MgO_032                        32 at  g2k1: 1.59x  g2k2: 1.84x
+pbe_sp         scal_MgO_064                        64 at  g2k1: 1.69x  g2k2: 1.80x
 pbe_sp         scal_Si_002                          2 at  g2k1: 1.12x  g2k2: 1.49x
 pbe_sp         scal_Si_008                          8 at  g2k1: 1.31x  g2k2: 1.53x
 pbe_sp         scal_Si_016                         16 at  g2k1: 1.45x  g2k2: 1.66x
 pbe_sp         scal_Si_032                         32 at  g2k1: 1.51x  g2k2: 1.59x
+pbe_sp         scal_Si_064                         64 at  g2k1: 1.66x  g2k2: 1.60x
 r2scan_relax   scal_Al_001                          1 at  g2k1: 1.19x  g2k2: 1.75x
 r2scan_relax   scal_Al_004                          4 at  g2k1: 1.57x  g2k2: 1.77x
 r2scan_relax   scal_Al_032                         32 at  g2k1: 1.62x  g2k2: 1.65x
+r2scan_relax   scal_Al_064                         64 at  g2k1: 1.57x  g2k2: 1.55x
 r2scan_relax   scal_MgO_002                         2 at  g2k1: 1.42x  g2k2: 1.60x
 r2scan_relax   scal_MgO_008                         8 at  g2k1: 1.46x  g2k2: 1.85x
 r2scan_relax   scal_MgO_016                        16 at  g2k1: 1.77x  g2k2: 1.89x
 r2scan_relax   scal_MgO_032                        32 at  g2k1: 1.79x  g2k2: 1.80x
+r2scan_relax   scal_MgO_064                        64 at  g2k1: 1.63x  g2k2: 1.79x
 r2scan_relax   scal_Si_002                          2 at  g2k1: 1.37x  g2k2: 1.57x
 r2scan_relax   scal_Si_008                          8 at  g2k1: 1.52x  g2k2: 1.69x
 r2scan_relax   scal_Si_016                         16 at  g2k1: 1.62x  g2k2: 1.72x
+r2scan_relax   scal_Si_032                         32 at  g2k1: 1.61x  g2k2: 1.59x
+r2scan_relax   scal_Si_064                         64 at  g2k1: 1.57x  g2k2: 1.54x
 r2scan_sp      scal_Al_001                          1 at  g2k1: 1.24x  g2k2: 1.72x
 r2scan_sp      scal_Al_004                          4 at  g2k1: 1.45x  g2k2: 1.71x
+r2scan_sp      scal_Al_032                         32 at  g2k1: 1.63x  g2k2: 1.68x
+r2scan_sp      scal_Al_064                         64 at  g2k1: 1.69x  g2k2: 1.69x
 r2scan_sp      scal_MgO_002                         2 at  g2k1: 1.42x  g2k2: 1.58x
 r2scan_sp      scal_MgO_008                         8 at  g2k1: 1.66x  g2k2: 1.80x
 r2scan_sp      scal_MgO_016                        16 at  g2k1: 1.75x  g2k2: 1.87x
+r2scan_sp      scal_MgO_032                        32 at  g2k1: 1.79x  g2k2: 1.78x
+r2scan_sp      scal_MgO_064                        64 at  g2k1: 1.77x  g2k2: 1.81x
 r2scan_sp      scal_Si_002                          2 at  g2k1: 1.26x  g2k2: 1.57x
 r2scan_sp      scal_Si_008                          8 at  g2k1: 1.52x  g2k2: 1.64x
 r2scan_sp      scal_Si_016                         16 at  g2k1: 1.64x  g2k2: 1.72x
+r2scan_sp      scal_Si_032                         32 at  g2k1: 1.63x  g2k2: 1.61x
+r2scan_sp      scal_Si_064                         64 at  g2k1: 1.66x  g2k2: 1.57x
 
 == Coût r2SCAN / PBE sur 1 GPU (temps total, et par pas SCF) ==
 relax  scal_Al_001                          1 at  total   7.1x   par pas SCF   6.9x
@@ -138,6 +154,3 @@ pbe_sp scal_Si_008                        g1    n=3  moyenne 18.1 s  écart rela
 r2scan_sp scal_Al_032                        g1    n=3  moyenne 180.7 s  écart relatif 0.2 %
 r2scan_sp scal_MgO_032                       g1    n=3  moyenne 337.0 s  écart relatif 0.5 %
 r2scan_sp scal_Si_008                        g1    n=3  moyenne 42.1 s  écart relatif 0.3 %
-
-== Calculs interrompus ou en erreur ==
-runs/r2scan_relax/scal_Si_032/g2k1  (code None)
