@@ -70,6 +70,8 @@ pymatgen, sans modification des paramètres physiques.
 
 - **POTCAR** : le jeu PBE_54 installé sur la machine sert aussi pour PBE. MP utilise un jeu PBE
   plus ancien, identique pour presque tous les éléments. W_pv, absent, serait remplacé par W_sv.
+  Pour les composés étudiés, seul Mg diffère : MP a utilisé `Mg_pv 06Sep2000` en PBE, contre
+  `Mg_pv 13Apr2007` ici (et chez MP en r2SCAN), d'où un écart constant d'environ 60 meV/atome sur MgO en PBE.
 - **Écritures désactivées** : WAVECAR, CHGCAR, AECCAR, LOCPOT et ELFCAR, pour mesurer le calcul
   et non les entrées/sorties.
 - **Parallélisation** : NCORE est retiré, car la version GPU l'impose à 1. KPAR dépend de la variante.

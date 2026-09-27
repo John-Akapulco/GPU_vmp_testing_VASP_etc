@@ -27,22 +27,37 @@ Materials Project PBE and r\textsuperscript{2}SCAN Workflows, and Finite-Displac
 \maketitle
 
 \begin{abstract}
-\todo{Write once all results are final (2-GPU series and phonons).}
 We benchmark the GPU (OpenACC) build of VASP 6.5.1 on a shared node with two NVIDIA H100 NVL
 GPUs. Single-point and full cell relaxation calculations are run on supercell series of Si, Al,
 and MgO from 1 to 64 atoms, using the Materials Project PBE and r\textsuperscript{2}SCAN input
 sets. We report wall time, time per self-consistent step, GPU memory, the cost of
 r\textsuperscript{2}SCAN relative to PBE, the speedup from one to two GPUs with two
 parallelization strategies, run-to-run reproducibility, and agreement with published Materials
-Project energies. Finite-displacement phonon calculations complete the study.
+Project energies. For these sizes, one calculation leaves the GPUs largely idle: mean
+utilization stays between 11 and \SI{51}{\percent}, and peak memory between 2.8 and
+\SI{12.2}{GB} out of \SI{94}{GB}. Time per SCF step grows sublinearly with the number of atoms
+because the $k$-point count decreases in larger supercells. r\textsuperscript{2}SCAN costs
+0.9 to $7.9\times$ more than PBE for a single point and 1.5 to $15.9\times$ more for a
+relaxation. Two GPUs give a speedup of 1.0 to $1.9\times$; distributing $k$-points
+(\texttt{KPAR}=2) is the better choice up to about 32 atoms, and distributing bands
+(\texttt{KPAR}=1) can overtake it for 64-atom cells with 3 or 4 $k$-points. Timings are
+reproducible to within \SI{1}{\percent}. Energies agree with Materials Project to within a few
+meV/atom, except for two understood cases: an older Mg PAW potential in the Materials Project
+PBE data, and coarse $k$-point sampling of metallic Al. Finite-displacement phonon calculations
+complete the study (results pending).
 \end{abstract}
 
 % ---------------------------------------------------------------------------
 \section{Introduction}
 \label{sec:intro}
 
-\todo{Context: GPU ports of plane-wave DFT codes; high-throughput workflows such as Materials
-Project~\cite{Jain2013}; practical questions for a small shared GPU node.}
+Plane-wave density-functional theory (DFT) codes such as VASP~\cite{Kresse1996} now run on
+GPUs, and high-throughput databases such as Materials Project~\cite{Jain2013} rely on
+standardized workflows run on thousands of structures, most of them with fewer than 100 atoms.
+A small shared node with two recent data-center GPUs raises practical questions for its users:
+which system sizes make good use of the hardware, what the standard workflows cost, and how best
+to use one or two GPUs. This report answers these questions for the GPU build of VASP 6.5.1 on
+such a node, using the Materials Project PBE and r\textsuperscript{2}SCAN input sets unchanged.
 
 This study addresses the following questions:
 \begin{enumerate}
@@ -158,7 +173,9 @@ The following deviations from the MP methodology apply identically to every calc
 \begin{itemize}
   \item \textbf{Pseudopotentials.} The PBE\_54 PAW set installed on the machine is used for
         both functionals. MP uses an older PBE set for its GGA calculations, which is identical
-        for almost all elements; W\_pv, absent from PBE\_54, would be replaced by W\_sv.
+        for almost all elements; W\_pv, absent from PBE\_54, would be replaced by W\_sv. Among
+        the present materials, only Mg differs: MP used \texttt{Mg\_pv 06Sep2000}, while
+        PBE\_54 provides \texttt{Mg\_pv 13Apr2007} (Section~\ref{sec:res-energies}).
   \item \textbf{Output.} Writing of \texttt{WAVECAR}, \texttt{CHGCAR}, \texttt{AECCAR},
         \texttt{LOCPOT}, and \texttt{ELFCAR} is disabled, so that the benchmark measures
         computation rather than I/O.
@@ -304,31 +321,222 @@ lowest frequency on the $q$-mesh (imaginary modes), and residual force drift.
 
 \subsection{Scaling with system size on one GPU}
 \label{sec:res-scaling}
-\todo{Table of the 56 one-GPU calculations; Fig.~t\_total\_vs\_natoms and t\_scf\_vs\_natoms;
-scaling exponents.}
+All 56 one-GPU calculations completed, and all 28 relaxations converged. Table~\ref{tab:t1}
+gives the median time per SCF step and the total time; Figs.~\ref{fig:t-scf}
+and~\ref{fig:t-total} plot them against the number of atoms.
 
-% \begin{figure}[htbp]
-%   \centering
-%   \includegraphics[width=0.8\linewidth]{t_total_vs_natoms.png}
-%   \caption{Total time versus number of atoms on one GPU.}
-%   \label{fig:t-total}
-% \end{figure}
+\begin{table}[htbp]
+\centering
+\caption{One-GPU timings (\texttt{g1}): median time per SCF step $t_\text{SCF}$ (s) and total
+time $t_\text{tot}$ (s, \texttt{OUTCAR} elapsed time). Phase-1 cases are averaged over three
+repeats.}
+\label{tab:t1}
+\small
+\begin{tabular}{@{}lr rr rr rr rr@{}}
+\toprule
+ & & \multicolumn{2}{c}{PBE SP} & \multicolumn{2}{c}{PBE relax}
+ & \multicolumn{2}{c}{r\textsuperscript{2}SCAN SP} & \multicolumn{2}{c}{r\textsuperscript{2}SCAN relax} \\
+\cmidrule(lr){3-4}\cmidrule(lr){5-6}\cmidrule(lr){7-8}\cmidrule(l){9-10}
+ & Atoms & $t_\text{SCF}$ & $t_\text{tot}$ & $t_\text{SCF}$ & $t_\text{tot}$ & $t_\text{SCF}$ & $t_\text{tot}$ & $t_\text{SCF}$ & $t_\text{tot}$ \\
+\midrule
+Si & 2 & 1.05 & 15 & 0.74 & 20 & 1.75 & 24 & 2.60 & 31 \\
+Si & 8 & 1.27 & 18 & 1.20 & 31 & 3.26 & 42 & 5.32 & 92 \\
+Si & 16 & 2.75 & 40 & 2.72 & 69 & 7.35 & 101 & 11.79 & 215 \\
+Si & 32 & 4.75 & 69 & 4.57 & 118 & 13.34 & 184 & 21.97 & 397 \\
+Si & 64 & 7.46 & 110 & 6.68 & 175 & 23.59 & 324 & 38.78 & 693 \\
+\addlinespace
+Al & 1 & 0.99 & 14 & 0.68 & 14 & 3.37 & 39 & 4.66 & 101 \\
+Al & 4 & 0.96 & 13 & 0.89 & 12 & 3.75 & 49 & 5.29 & 166 \\
+Al & 32 & 2.78 & 34 & 2.68 & 57 & 12.66 & 181 & 21.37 & 594 \\
+Al & 64 & 6.17 & 83 & 5.50 & 122 & 33.72 & 654 & 51.15 & 1943 \\
+\addlinespace
+MgO & 2 & 2.53 & 36 & 1.69 & 46 & 1.97 & 31 & 3.07 & 66 \\
+MgO & 8 & 3.44 & 51 & 2.06 & 59 & 4.88 & 76 & 7.89 & 270 \\
+MgO & 16 & 6.89 & 97 & 4.63 & 127 & 11.13 & 173 & 17.40 & 696 \\
+MgO & 32 & 10.06 & 138 & 7.89 & 218 & 19.56 & 337 & 31.55 & 1528 \\
+MgO & 64 & 12.32 & 163 & 11.13 & 309 & 29.44 & 470 & 50.40 & 2864 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.85\linewidth]{t_scf_vs_natoms.png}
+  \caption{Median time per SCF step versus number of atoms on one GPU.}
+  \label{fig:t-scf}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.85\linewidth]{t_total_vs_natoms.png}
+  \caption{Total time versus number of atoms on one GPU.}
+  \label{fig:t-total}
+\end{figure}
+
+\paragraph{Scaling.} Times are short: every PBE calculation finishes in less than \SI{5.5}{min},
+and the longest calculation, the r\textsuperscript{2}SCAN relaxation of 64-atom MgO, takes
+\SI{48}{min}. Fitting $t_\text{SCF} \propto N^{\alpha}$ between 8 and 64 atoms for Si and MgO
+gives $\alpha = 0.6$--0.85 with PBE and 0.85--0.95 with r\textsuperscript{2}SCAN: the time per
+step grows more slowly than the number of atoms. This is mostly a consequence of the MP
+$k$-point density, which is fixed per reciprocal volume, so that the number of irreducible
+$k$-points drops from 10--20 at 8 atoms to 4 at 64 atoms. Per $k$-point, the exponent is
+1.25--1.4, still far below the $N^2$--$N^3$ behavior expected once the GPU is saturated. For the smallest
+cells, times are almost flat (about \SI{1}{s} per PBE SCF step for Si and Al up to 8 atoms):
+fixed overheads dominate.
 
 \subsection{Cost of r\textsuperscript{2}SCAN relative to PBE}
 \label{sec:res-r2scan}
-\todo{Ratios per SCF step and in total, single points and relaxations.}
+Table~\ref{tab:r2} gives the ratio of r\textsuperscript{2}SCAN to PBE times. It measures the
+cost of the MP r\textsuperscript{2}SCAN workflow relative to the MP PBE workflow as used in
+practice, not of the functional alone: r\textsuperscript{2}SCAN also uses a higher cutoff
+(\SI{680}{} instead of \SI{520}{eV}) and, for Al, a denser $k$-mesh (12 instead of 3
+$k$-points at 64 atoms).
+
+\begin{table}[htbp]
+\centering
+\caption{Cost of r\textsuperscript{2}SCAN relative to PBE on one GPU: ratio of total times and
+of times per SCF step.}
+\label{tab:r2}
+\small
+\begin{tabular}{@{}lr cc cc@{}}
+\toprule
+ & & \multicolumn{2}{c}{Single point} & \multicolumn{2}{c}{Relaxation} \\
+\cmidrule(lr){3-4}\cmidrule(l){5-6}
+ & Atoms & Total & Per SCF step & Total & Per SCF step \\
+\midrule
+Si & 2 & 1.6 & 1.7 & 1.6 & 3.5 \\
+Si & 8 & 2.3 & 2.6 & 2.9 & 4.4 \\
+Si & 16 & 2.6 & 2.7 & 3.1 & 4.3 \\
+Si & 32 & 2.6 & 2.8 & 3.4 & 4.8 \\
+Si & 64 & 3.0 & 3.2 & 4.0 & 5.8 \\
+\addlinespace
+Al & 1 & 2.8 & 3.4 & 7.1 & 6.9 \\
+Al & 4 & 3.7 & 3.9 & 13.3 & 5.9 \\
+Al & 32 & 5.3 & 4.6 & 10.4 & 8.0 \\
+Al & 64 & 7.9 & 5.5 & 15.9 & 9.3 \\
+\addlinespace
+MgO & 2 & 0.9 & 0.8 & 1.5 & 1.8 \\
+MgO & 8 & 1.5 & 1.4 & 4.5 & 3.8 \\
+MgO & 16 & 1.8 & 1.6 & 5.5 & 3.8 \\
+MgO & 32 & 2.4 & 1.9 & 7.0 & 4.0 \\
+MgO & 64 & 2.9 & 2.4 & 9.3 & 4.5 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The ratio grows with system size. Per SCF step in single points, r\textsuperscript{2}SCAN costs 1.7 to $3.2\times$
+more for Si, 3.4 to $5.5\times$ for Al (with a denser $k$-mesh), and 0.8 to $2.4\times$ for
+MgO; for the MgO primitive cell, the r\textsuperscript{2}SCAN step is cheaper because its
+$k$-mesh has 16 instead of 56 irreducible points. For relaxations the total ratio is larger
+(up to $15.9\times$ for Al and $9.3\times$ for MgO), because r\textsuperscript{2}SCAN
+relaxations need more SCF steps (Section~\ref{sec:res-relax}).
 
 \subsection{Relaxation versus single point}
 \label{sec:res-relax}
-\todo{}
+Table~\ref{tab:relax} compares relaxations with single points. Since the MP structures are
+already relaxed with PBE, PBE relaxations take 1 to 3 ionic steps and cost 0.9 to $1.9\times$ a
+single point; the PBE relaxation set also uses a coarser $k$-mesh and \texttt{LREAL}=Auto, which
+makes each SCF step cheaper. r\textsuperscript{2}SCAN relaxations take 1 to 4 ionic steps,
+since the cell adjusts to the new functional, and 13 to 46 SCF steps in total, with
+\texttt{ALGO}=All; they cost 1.3 to $6.1\times$ a single point, the ratio being largest for
+MgO.
+
+\begin{table}[htbp]
+\centering
+\caption{Relaxations versus single points on one GPU: numbers of ionic and SCF steps of the
+relaxation, and ratio of total times (relaxation / single point).}
+\label{tab:relax}
+\small
+\begin{tabular}{@{}lr ccc ccc@{}}
+\toprule
+ & & \multicolumn{3}{c}{PBE} & \multicolumn{3}{c}{r\textsuperscript{2}SCAN} \\
+\cmidrule(lr){3-5}\cmidrule(l){6-8}
+ & Atoms & Ionic & SCF & Ratio & Ionic & SCF & Ratio \\
+\midrule
+Si & 2 & 3 & 19 & 1.31 & 1 & 13 & 1.28 \\
+Si & 8 & 3 & 20 & 1.73 & 2 & 18 & 2.19 \\
+Si & 16 & 3 & 20 & 1.75 & 2 & 19 & 2.12 \\
+Si & 32 & 3 & 20 & 1.70 & 2 & 19 & 2.16 \\
+Si & 64 & 3 & 20 & 1.60 & 2 & 19 & 2.14 \\
+\addlinespace
+Al & 1 & 3 & 13 & 1.00 & 3 & 20 & 2.57 \\
+Al & 4 & 1 & 10 & 0.94 & 4 & 27 & 3.39 \\
+Al & 32 & 3 & 14 & 1.68 & 3 & 26 & 3.28 \\
+Al & 64 & 3 & 16 & 1.47 & 3 & 31 & 2.97 \\
+\addlinespace
+MgO & 2 & 3 & 23 & 1.26 & 2 & 21 & 2.15 \\
+MgO & 8 & 3 & 25 & 1.17 & 3 & 31 & 3.56 \\
+MgO & 16 & 3 & 24 & 1.31 & 3 & 34 & 4.03 \\
+MgO & 32 & 3 & 24 & 1.58 & 3 & 39 & 4.54 \\
+MgO & 64 & 3 & 24 & 1.89 & 3 & 46 & 6.10 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \subsection{GPU memory}
 \label{sec:res-memory}
-\todo{}
+Table~\ref{tab:mem} gives the peak GPU memory. About \SI{2.9}{GB} is used even for one atom
+(CUDA context, libraries, and fixed VASP work arrays). Above this baseline, memory grows with
+the number of plane waves, bands, and $k$-points: with PBE it never exceeds \SI{5.2}{GB}, and
+with r\textsuperscript{2}SCAN it reaches \SI{9.2}{GB} for the 64-atom Si relaxation and
+\SI{12.2}{GB} for the 64-atom Al relaxation (12 $k$-points). All values are far below the
+\SI{94}{GB} of each GPU. Peak host memory stays below \SI{9.5}{GB}, within the
+$\sim$\SI{28}{GB} allocated per GPU.
+
+\begin{table}[htbp]
+\centering
+\caption{Peak GPU memory on one GPU (GB), sampled every \SI{2}{s} with \texttt{nvidia-smi}.}
+\label{tab:mem}
+\small
+\begin{tabular}{@{}lr cccc@{}}
+\toprule
+ & Atoms & PBE SP & PBE relax & r\textsuperscript{2}SCAN SP & r\textsuperscript{2}SCAN relax \\
+\midrule
+Si & 2 & 2.9 & 2.9 & 3.0 & 3.1 \\
+Si & 8 & 3.0 & 3.0 & 3.2 & 3.3 \\
+Si & 16 & 3.2 & 3.2 & 3.6 & 4.1 \\
+Si & 32 & 3.8 & 3.8 & 4.6 & 5.9 \\
+Si & 64 & 5.2 & 5.1 & 7.0 & 9.2 \\
+\addlinespace
+Al & 1 & 2.8 & 2.8 & 2.9 & 3.0 \\
+Al & 4 & 2.9 & 2.9 & 3.0 & 3.1 \\
+Al & 32 & 3.3 & 3.3 & 4.1 & 5.1 \\
+Al & 64 & 4.3 & 4.3 & 7.6 & 12.2 \\
+\addlinespace
+MgO & 2 & 2.9 & 2.9 & 2.9 & 3.0 \\
+MgO & 8 & 2.9 & 2.9 & 3.0 & 3.1 \\
+MgO & 16 & 3.2 & 3.1 & 3.2 & 3.6 \\
+MgO & 32 & 3.6 & 3.5 & 3.9 & 5.0 \\
+MgO & 64 & 4.3 & 4.3 & 4.8 & 6.5 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \subsection{Reproducibility}
 \label{sec:res-repro}
-\todo{Relative spread of the three repeats.}
+The six single points of phase~1 were each run three times on one GPU
+(Table~\ref{tab:repro}). The relative spread of the total time (standard deviation over mean)
+is at most \SI{1.0}{\percent}, so differences of more than a few percent between variants are
+significant.
+
+\begin{table}[htbp]
+\centering
+\caption{Reproducibility of total times over three repeats on one GPU.}
+\label{tab:repro}
+\small
+\begin{tabular}{@{}llrrr@{}}
+\toprule
+Series & Material & Atoms & Mean time (s) & Relative spread \\
+\midrule
+PBE SP & Si & 8 & 18.1 & \SI{1.0}{\percent} \\
+PBE SP & Al & 32 & 34.0 & \SI{0.6}{\percent} \\
+PBE SP & MgO & 32 & 138.1 & \SI{0.2}{\percent} \\
+r\textsuperscript{2}SCAN SP & Si & 8 & 42.1 & \SI{0.3}{\percent} \\
+r\textsuperscript{2}SCAN SP & Al & 32 & 180.7 & \SI{0.2}{\percent} \\
+r\textsuperscript{2}SCAN SP & MgO & 32 & 337.0 & \SI{0.5}{\percent} \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \subsection{Two GPUs: speedup and \texttt{KPAR}}
 \label{sec:res-2gpu}
@@ -395,7 +603,60 @@ two agree within \SI{2}{\percent} in 8.
 
 \subsection{Agreement with Materials Project energies}
 \label{sec:res-energies}
-\todo{Energy differences per series; explain the PBE offsets for MgO and Al.}
+Table~\ref{tab:dE} gives the difference between the computed energy per atom and the
+uncorrected MP energy of the same functional. Energies computed on two GPUs agree with the
+one-GPU values to within \SI{0.01}{meV/atom}.
+
+\begin{table}[htbp]
+\centering
+\caption{Energy difference from the uncorrected MP energy of the same functional
+(meV/atom), one GPU.}
+\label{tab:dE}
+\small
+\begin{tabular}{@{}lr rrrr@{}}
+\toprule
+ & Atoms & PBE SP & PBE relax & r\textsuperscript{2}SCAN SP & r\textsuperscript{2}SCAN relax \\
+\midrule
+Si & 2 & 3.4 & 4.6 & 2.8 & 2.4 \\
+Si & 8 & 1.9 & 2.5 & $-$0.9 & $-$1.5 \\
+Si & 16 & 1.8 & 2.4 & $-$1.1 & $-$1.7 \\
+Si & 32 & 2.4 & 2.4 & $-$1.2 & $-$1.8 \\
+Si & 64 & 4.0 & 2.5 & $-$1.2 & $-$1.8 \\
+\addlinespace
+Al & 1 & $-$0.5 & 18.1 & 1.5 & $-$3.0 \\
+Al & 4 & $-$2.2 & $-$19.1 & $-$1.7 & $-$6.5 \\
+Al & 32 & $-$22.1 & $-$22.3 & $-$0.1 & $-$6.1 \\
+Al & 64 & $-$3.8 & $-$5.2 & $-$1.5 & $-$6.1 \\
+\addlinespace
+MgO & 2 & 59.9 & 50.4 & 0.9 & 0.5 \\
+MgO & 8 & 59.9 & 50.4 & 1.8 & 1.2 \\
+MgO & 16 & 59.9 & 50.4 & 1.8 & 1.2 \\
+MgO & 32 & 59.9 & 50.4 & 1.8 & 1.1 \\
+MgO & 64 & 59.9 & 50.4 & 1.8 & 1.1 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Si and r\textsuperscript{2}SCAN.} Si agrees with MP to within \SI{5}{meV/atom} with
+both functionals, and all three materials agree to within \SI{7}{meV/atom} with
+r\textsuperscript{2}SCAN.
+
+\paragraph{MgO with PBE.} The offset is constant, $+60$~meV/atom for single points and $+50$
+for relaxations, independent of cell size. It comes from the Mg pseudopotential: according to
+the MP task data, the MP GGA calculation of mp-1265 used \texttt{PAW\_PBE Mg\_pv 06Sep2000},
+whereas the PBE\_54 set used here provides \texttt{Mg\_pv 13Apr2007} (the O potential is the
+same). The MP r\textsuperscript{2}SCAN calculation used \texttt{Mg\_pv 13Apr2007}, as here, and the
+r\textsuperscript{2}SCAN energies agree to within \SI{2}{meV/atom}. The difference between single points and
+relaxations comes from the different $k$-meshes and \texttt{LREAL} settings of the two sets.
+
+\paragraph{Al with PBE.} The deviation varies with cell size: from $-0.5$ to $-22$~meV/atom for
+single points, largest for 32 atoms, and from $+18$ to $-22$~meV/atom for relaxations. Al is a metal, whose total energy converges slowly with
+$k$-point sampling. In the supercells, the MP $k$-point density per atom gives coarse meshes
+($3\times3\times3$, 4 irreducible points, for 32 atoms), where the tetrahedron method is still
+used; for 64 atoms, the mesh has 3 points and Gaussian smearing is used instead
+(Section~\ref{sec:settings}). The relaxation set, with its lower $k$-point density, shows larger
+deviations. These values reflect the sampling of the MP input sets in supercells, not a
+problem with the GPU build.
 
 \subsection{Phonons}
 \label{sec:res-phonons}
@@ -476,7 +737,20 @@ Three tests would settle the question of hardware suitability:
 
 \section{Conclusion}
 \label{sec:conclusion}
-\todo{}
+On this dual-H100 node, the GPU build of VASP 6.5.1 runs the standard Materials Project PBE and
+r\textsuperscript{2}SCAN workflows for 1- to 64-atom cells correctly and quickly: all 168
+calculations completed, energies are consistent with MP once pseudopotential and $k$-point
+differences are accounted for, one-GPU and two-GPU energies are identical, and timings are
+reproducible to within \SI{1}{\percent}. PBE single points and relaxations take seconds to a
+few minutes, and r\textsuperscript{2}SCAN relaxations up to \SI{48}{min}.
+
+In this size range, however, one calculation uses only a small fraction of a GPU: utilization
+stays below about \SI{50}{\percent}, memory below \SI{13}{GB}, and the time per SCF step grows
+sublinearly with the number of atoms. Two GPUs shorten a calculation by a factor of 1.0 to
+1.9 only, so for small cells running one calculation per GPU gives more throughput. When two
+GPUs are used, \texttt{KPAR}=2 is preferable when there are many $k$-points, and
+\texttt{KPAR}=1 can be better when there are only 3 or 4. The phonon results, the concurrent
+runs on one GPU, and larger systems will show how much of the idle capacity can be recovered.
 
 \section*{Data and Code Availability}
 Scripts, inputs generation, and result tables are available at
