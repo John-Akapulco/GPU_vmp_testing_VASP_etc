@@ -13,7 +13,7 @@ Méthodologies (pymatgen) :
   - pas d'écriture de WAVECAR, CHGCAR, AECCAR, LOCPOT, ELFCAR (on mesure le calcul, pas les E/S) ;
   - NCORE retiré (imposé à 1 par la version GPU), KPAR fixé par la variante ;
   - ISMEAR=-5 (tétraèdres) remplacé par ISMEAR=0, SIGMA=0.05 quand la grille a moins de
-    4 points k (VASP s'arrêterait ; c'est aussi la correction appliquée par custodian chez MP).
+    4 points k irréductibles (VASP s'arrêterait ; c'est aussi la correction appliquée par custodian chez MP).
 
 Variantes de parallélisation :
   g1    1 GPU, KPAR=1
@@ -113,7 +113,7 @@ def main():
                     nk, mesh = n_ir_kpoints(vis.structure, vis.incar, vis.kpoints)
                     if kpar > 1 and nk < kpar:
                         continue
-                    if vis.incar.get("ISMEAR") == -5 and math.prod(mesh) < 4:
+                    if vis.incar.get("ISMEAR") == -5 and nk < 4:  # VASP compte les points irréductibles
                         vis = SETS[(func, calc)](structure, **kwargs, user_incar_settings=dict(
                             incar_user, ISMEAR=0, SIGMA=0.05))
                     vis.write_input(d, potcar_spec=False)

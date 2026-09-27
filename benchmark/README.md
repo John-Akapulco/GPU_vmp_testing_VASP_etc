@@ -40,7 +40,7 @@ Toutes les étapes peuvent être relancées : les calculs terminés ne sont ni r
 
 Écarts à MP, identiques pour tous les calculs : POTCAR PBE_54 aussi pour PBE (W_pv → W_sv),
 pas d'écriture des WAVECAR/CHGCAR/LOCPOT, NCORE retiré, KPAR fixé par la variante,
-ISMEAR 0 au lieu de −5 si moins de 4 points k.
+ISMEAR 0 au lieu de −5 si moins de 4 points k irréductibles.
 
 Variantes : `g1` (1 GPU), `g2k1` (2 GPU, KPAR=1), `g2k2` (2 GPU, KPAR=2).
 
@@ -60,3 +60,20 @@ Variantes : `g1` (1 GPU), `g2k1` (2 GPU, KPAR=1), `g2k2` (2 GPU, KPAR=2).
   Slurm ne peut pas intercaler les jobs et les deux séries s'alternent.
 - Les phases à 2 GPU bloquent toute la machine : les lancer le soir ou le week-end
   et prévenir les collègues.
+
+## Phonons PBE (différences finies, phonopy)
+
+| Étape | Commande | Résultat |
+|---|---|---|
+| 5. Préparation | `python scripts/05_phonon_setup.py` | `phonons/<label>/<variante>/relax1/`, `phonon.json` |
+| 6. Soumission | `python scripts/05_phonon_setup.py --submit g1 g2k1 [--after JOB]` | un job array par variante, la 2ᵉ attend la 1ʳᵉ |
+| 7. Analyse | `python scripts/06_phonon_analyze.py` | `results/phonons_summary.txt`, `phonons_steps.csv` |
+
+Une tâche Slurm = une chaîne complète pour un matériau (`scripts/phonon_pipeline.py`) :
+relaxation serrée de la maille primitive (passes successives jusqu'à ≤ 2 pas ioniques),
+charges de Born et ε∞ si le matériau est polaire (LEPSILON, repli LCALCEPS), puis pour
+deux tailles de supercellule : déplacements, forces, constantes de force, bandes, DOS,
+grandeurs thermodynamiques. Mêmes entrées en 1 et 2 GPU (KPAR = 1) ; seul le matériel change.
+Coût mesuré : temps VASP et GPU·h ; temps de restitution (soumission → résultat, file comprise).
+
+phonopy 4.6 est utilisé avec son moteur C : le moteur Rust installé (phonors 0.5) est incompatible.
