@@ -77,3 +77,26 @@ grandeurs thermodynamiques. Mêmes entrées en 1 et 2 GPU (KPAR = 1) ; seul le m
 Coût mesuré : temps VASP et GPU·h ; temps de restitution (soumission → résultat, file comprise).
 
 phonopy 4.6 est utilisé avec son moteur C : le moteur Rust installé (phonors 0.5) est incompatible.
+
+## Calculs simultanés sur une GPU (avec et sans MPS)
+
+Les petits systèmes n'occupent qu'une partie d'une H100 (utilisation de 10 à 50 %, 3 à 12 Go).
+Ce test mesure ce que rapporte le lancement de N calculs identiques en même temps sur une seule GPU.
+
+| Étape | Commande | Résultat |
+|---|---|---|
+| 8. Préparation | `python scripts/07_concurrency.py` | `runs_conc/<série>/<label>/n<N>_<mode>/copy-<i>/` |
+| 9. Soumission | `python scripts/07_concurrency.py --submit [--after JOB]` | un job array à 1 GPU, un lot à la fois |
+| 10. Analyse | `python scripts/07_concurrency.py --analyze` | `results/concurrency.csv`, `concurrency_summary.txt`, `concurrency_throughput.png` |
+
+- Les copies reprennent sans modification les entrées g1 de `runs/` ; la référence est le temps g1
+  déjà mesuré (moyenne des répétitions quand il y en a).
+- Un lot = un job Slurm à 1 GPU et 8 cœurs, dans lequel tournent N processus VASP (`run_conc.slurm`) :
+  Slurm ne partage pas les GPU entre jobs sur cette machine.
+- Deux modes : `nomps` (partage de la GPU par tranches de temps, par défaut) et `mps` (démon NVIDIA
+  MPS propre au job, dans `/tmp/mps_<job>`, qui laisse les noyaux des N processus s'exécuter ensemble).
+- Calculs : `pbe_sp` Si 8 at. et MgO 32 at., `r2scan_sp` Al 32 at. avec N = 1 (MPS seul), 2, 4, 8 ;
+  `r2scan_sp` Si 64 at. avec N = 1, 2, 4 (limité par la mémoire hôte). 26 lots, 100 calculs,
+  3,9 h au plus sur 1 GPU.
+- Mesures : gain de débit N × t_ref / T_lot (idéal : N), ralentissement de chaque calcul,
+  temps par pas SCF, mémoire et utilisation GPU, écart d'énergie avec la référence (doit être nul).
