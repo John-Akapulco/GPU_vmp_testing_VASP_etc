@@ -39,6 +39,7 @@ MON=$!
 
 echo "Début $(date -Is) | $DIR | $N copies, $MODE, GPU $CUDA_VISIBLE_DEVICES | job ${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}"
 T0=$(date +%s.%N)
+PIDS=()
 for c in "${COPIES[@]}"; do
     (
         cd "$c"
@@ -48,8 +49,9 @@ for c in "${COPIES[@]}"; do
         t1=$(date +%s.%N)
         echo "{\"return_code\": $rc, \"wall_s\": $(echo "$t1 - $t0" | bc), \"start\": \"$(date -d @${t0%.*} -Is)\"}" > timing.json
     ) &
+    PIDS+=($!)
 done
-wait
+wait "${PIDS[@]}"   # pas de wait nu : il attendrait aussi le moniteur nvidia-smi, qui ne s'arrête jamais
 T1=$(date +%s.%N)
 kill $MON 2>/dev/null
 [ "$MODE" = mps ] && { echo quit | nvidia-cuda-mps-control; rm -rf /tmp/mps_${SLURM_JOB_ID}; }

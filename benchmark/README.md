@@ -60,6 +60,14 @@ Variantes : `g1` (1 GPU), `g2k1` (2 GPU, KPAR=1), `g2k2` (2 GPU, KPAR=2).
   Slurm ne peut pas intercaler les jobs et les deux séries s'alternent.
 - Les phases à 2 GPU bloquent toute la machine : les lancer le soir ou le week-end
   et prévenir les collègues.
+- Dans un script Slurm qui lance des processus en arrière-plan (`&`), ne jamais écrire `wait`
+  sans argument quand un moniteur tourne aussi en arrière-plan (`nvidia-smi -l 2 &`) : `wait`
+  attend alors le moniteur, qui ne s'arrête jamais, et le job garde le GPU indéfiniment (sans limite de
+  temps, rien ne l'arrête). Relever les PID (`PIDS+=($!)`) puis `wait "${PIDS[@]}"`.
+  Incident du 28/09/2026 : job 187_0 bloqué 13 h après un calcul de 18 s, file entière en attente.
+- Après la soumission d'un job array, vérifier que la première tâche se termine (`squeue`, fin du log)
+  avant de laisser la suite tourner seule. Corriger le script ne suffit pas : Slurm exécute la copie
+  faite à la soumission, et les tâches en attente doivent être annulées puis resoumises.
 
 ## Phonons PBE (différences finies, phonopy)
 
