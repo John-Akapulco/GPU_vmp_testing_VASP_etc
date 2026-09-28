@@ -22,7 +22,7 @@ source /opt/vasp/vasp_env.sh
 export OMP_NUM_THREADS=1
 export OMPI_MCA_coll_hcoll_enable=0
 
-squeue -h -t R -w "$SLURMD_NODENAME" -o "%i|%u|%b" | grep -v "^${SLURM_JOB_ID}|" > node_jobs.txt
+squeue -h -t R -w "$SLURMD_NODENAME" -o "%i|%u|%b" | grep -v -e "^${SLURM_JOB_ID}|" -e "^${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}|" > node_jobs.txt
 nvidia-smi --query-gpu=index,name,memory.total,driver_version --format=csv,noheader > gpu_info.txt 2>&1
 
 # Démon MPS propre au job : répertoires privés, n'interfère avec aucun autre utilisateur

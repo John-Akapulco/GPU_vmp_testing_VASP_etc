@@ -19,9 +19,10 @@
 \newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
 
 \title{Performance of GPU-Accelerated VASP 6.5.1 on a Dual NVIDIA H100 Node:\\
-Materials Project PBE and r\textsuperscript{2}SCAN Workflows, and Finite-Displacement Phonons}
+Materials Project PBE and r\textsuperscript{2}SCAN Workflows, Finite-Displacement Phonons,\\
+and Concurrent Runs on One GPU}
 \author{Gilles Frapper \\ Professor, Theoretical Chemistry \\ IC2MP UMR 7285 CNRS, Universit\'e de Poitiers \\ \href{mailto:gilles.frapper@univ-poitiers.fr}{gilles.frapper@univ-poitiers.fr}}
-\date{Draft, September 27, 2026}
+\date{Draft, September 28, 2026}
 
 \begin{document}
 \maketitle
@@ -43,8 +44,12 @@ relaxation. Two GPUs give a speedup of 1.0 to $1.9\times$; distributing $k$-poin
 (\texttt{KPAR}=1) can overtake it for 64-atom cells with 3 or 4 $k$-points. Timings are
 reproducible to within \SI{1}{\percent}. Energies agree with Materials Project to within a few
 meV/atom, except for two understood cases: an older Mg PAW potential in the Materials Project
-PBE data, and coarse $k$-point sampling of metallic Al. Finite-displacement phonon calculations
-complete the study (results pending).
+PBE data, and coarse $k$-point sampling of metallic Al. Complete finite-displacement phonon
+workflows of Si, Al, and MgO take 0.5 to \SI{1.7}{h} on one GPU and run 1.4 to $1.6\times$ faster on
+two. Finally, running several small calculations at once on one GPU recovers much of the idle
+capacity, but only with the NVIDIA Multi-Process Service (MPS): eight concurrent single points
+raise throughput by 4.1 to $5.8\times$ with MPS, whereas without MPS throughput stays between
+0.55 and $1.35\times$.
 \end{abstract}
 
 % ---------------------------------------------------------------------------
@@ -72,6 +77,8 @@ This study addresses the following questions:
   \item Are the computed energies consistent with those published by Materials Project?
   \item What is the time-to-solution of a complete finite-displacement phonon calculation on one
         and two GPUs?
+  \item Can several small calculations share one GPU to recover its idle capacity, with and
+        without the NVIDIA Multi-Process Service (MPS)?
 \end{enumerate}
 
 % ---------------------------------------------------------------------------
@@ -91,7 +98,8 @@ GPUs & 2 $\times$ NVIDIA H100 NVL, \SI{94}{GB} each (driver 595.84) \\
 CPU & AMD EPYC 7662, 32 cores assigned to the virtual machine \\
 Host memory & \SI{62}{GB} \\
 Per GPU (Slurm) & 16 cores, $\sim$\SI{28}{GB} host memory, no time limit \\
-DFT code & VASP 6.5.1, OpenACC GPU build \\
+DFT code & VASP 6.5.1 (release of March 10, 2025), OpenACC GPU build compiled \\
+         & on September 23, 2026 (\texttt{vasp\_std}, \texttt{vasp\_gam}) \\
 Toolchain & NVIDIA HPC SDK 26.3, HPC-X (CUDA-aware Open MPI), Intel oneMKL \\
 Execution & one MPI rank per GPU, \texttt{OMP\_NUM\_THREADS}=1 \\
 Workflow tools & pymatgen 2026.9.23~\cite{Ong2013}, phonopy 4.6.0~\cite{Togo2023,Togo2015} \\
@@ -256,6 +264,7 @@ Phase & Content & GPUs & Calculations \\
 3 & Relaxations, PBE and r\textsuperscript{2}SCAN & 1 & 28 \\
 4 & All four series, \texttt{g2k1} and \texttt{g2k2} & 2 & 112 \\
 5 & Finite-displacement phonons, \texttt{g1} and \texttt{g2k1} & 1, 2 & 6 workflows \\
+6 & Concurrent single points on one GPU, with and without MPS & 1 & 26 batches, 100 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -314,6 +323,24 @@ MgO & $21^3$ & $3^3$ (54), $4^3$ (128) & 2 per cell & $7^3$, $5^3$ \\
 \paragraph{Metrics.} VASP wall time of every step and GPU-hours; time-to-solution from
 submission to result, queue time included; quality checks: acoustic frequencies at $\Gamma$,
 lowest frequency on the $q$-mesh (imaginary modes), and residual force drift.
+
+\subsection{Concurrent runs on one GPU}
+\label{sec:conc-methods}
+Four single points of the one-GPU campaign were rerun as batches of $N$ identical copies sharing
+one GPU: PBE Si (8 atoms) and MgO (32 atoms), and r\textsuperscript{2}SCAN Al (32 atoms) with
+$N=2$, 4, and 8; r\textsuperscript{2}SCAN Si (64 atoms) with $N=2$ and 4, limited by the
+$\sim$\SI{28}{GB} of host memory available per GPU. The inputs are those of the \texttt{g1} runs,
+unchanged. Each batch runs in a single Slurm job with one GPU and 8 cores, since Slurm does not
+share a GPU between jobs on this node; each copy is one MPI rank with
+\texttt{OMP\_NUM\_THREADS}=1. Two modes are compared. Without MPS, the CUDA contexts of the $N$
+processes share the GPU by time slicing, the default behavior. With MPS, a daemon private to the
+job lets kernels from the $N$ processes run on the GPU at the same time. A run of one copy under
+MPS checks that the daemon itself costs nothing.
+
+The throughput gain of a batch is $N\,t_\text{ref}/T_\text{batch}$, where $t_\text{ref}$ is the
+mean one-GPU time of the calculation run alone (Section~\ref{sec:res-scaling}) and
+$T_\text{batch}$ is the time from the first start to the last end of the batch; the ideal value
+is $N$. The slowdown of each calculation is its time in the batch divided by $t_\text{ref}$.
 
 % ---------------------------------------------------------------------------
 \section{Results}
@@ -728,6 +755,58 @@ campaign for \SI{2.1}{h}. For phonons of small cells, one GPU is therefore the e
 choice; two GPUs are worth using only to get the result about 1.5 times sooner when the node is
 otherwise idle.
 
+\subsection{Concurrent runs on one GPU}
+\label{sec:res-conc}
+All 26 batches (100 calculations) completed, with no other job on the node. The energies of all
+copies are identical to those of the reference runs, and one copy under MPS runs as fast as
+without it (throughput 0.98 to $0.99\times$). Table~\ref{tab:conc} and
+Figure~\ref{fig:conc} give the throughput gains.
+
+\begin{table}[htbp]
+\centering
+\caption{Throughput gain $N\,t_\text{ref}/T_\text{batch}$ of $N$ identical single points
+sharing one GPU, without and with MPS (ideal value: $N$). $t_\text{ref}$: time of one
+calculation alone.}
+\label{tab:conc}
+\small
+\begin{tabular}{@{}llrrrrrrrr@{}}
+\toprule
+ & & & & \multicolumn{2}{c}{$N=2$} & \multicolumn{2}{c}{$N=4$} & \multicolumn{2}{c}{$N=8$} \\
+\cmidrule(lr){5-6}\cmidrule(lr){7-8}\cmidrule(l){9-10}
+Series & Material & Atoms & $t_\text{ref}$ (s) & no MPS & MPS & no MPS & MPS & no MPS & MPS \\
+\midrule
+\texttt{pbe\_sp}    & Si  & 8  & 18.1  & 0.56 & 1.90 & 0.61 & 3.47 & 0.60 & 5.78 \\
+\texttt{pbe\_sp}    & MgO & 32 & 138.1 & 0.55 & 1.89 & 0.58 & 3.31 & 0.56 & 5.04 \\
+\texttt{r2scan\_sp} & Al  & 32 & 180.7 & 0.93 & 1.81 & 1.08 & 2.94 & 1.15 & 4.12 \\
+\texttt{r2scan\_sp} & Si  & 64 & 324.2 & 1.11 & 1.67 & 1.35 & 2.53 & --   & --   \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.75\linewidth]{concurrency_throughput.png}
+  \caption{Throughput gain of $N$ concurrent single points on one GPU. Solid lines: with MPS;
+  dashed lines: without MPS; dotted line: ideal gain.}
+  \label{fig:conc}
+\end{figure}
+
+\paragraph{With MPS,} throughput rises to 1.7--$1.9\times$ with two calculations,
+2.5--$3.5\times$ with four, and 4.1--$5.8\times$ with eight, a parallel efficiency of 52 to
+72\% at $N=8$. Each calculation is slowed down by only 1.3 to $1.9\times$ at $N=8$: the time
+per SCF step of PBE Si 8 atoms goes from 1.27 to \SI{1.60}{s}. The gain is largest for the
+smallest calculations, which leave most of the GPU idle, and decreases with system size. Mean
+GPU utilization rises from 25--\SI{38}{\percent} for one calculation to 69--\SI{90}{\percent} for
+eight, and GPU memory grows in proportion to $N$, up to \SI{34.5}{GB} for eight
+r\textsuperscript{2}SCAN Al 32-atom copies, well within the \SI{94}{GB} of the H100.
+
+\paragraph{Without MPS,} sharing the GPU brings nothing. For the PBE cases the batch is even 1.6 to
+1.8 times slower than running the same calculations one after the other (gain 0.55 to 0.61),
+because each process waits for its time slice and the context switches add overhead: the time
+per SCF step of each copy grows about $N$-fold or more (PBE MgO: from 10.1 to \SI{125}{s} at
+$N=8$). For r\textsuperscript{2}SCAN, whose kernels are longer, the gain stays between 0.93
+and $1.35\times$.
+
 % ---------------------------------------------------------------------------
 \section{Discussion and Recommendations}
 \label{sec:discussion}
@@ -785,20 +864,24 @@ few hundred atoms, or with many bands and $k$-points.
         evenly between the two GPUs.
   \item Memory is not a constraint in this size range: the H100s leave ample room for much
         larger systems.
+  \item For many small independent calculations (screening, phonon displacements), run 4 to 8
+        of them on the same GPU under MPS: throughput increases 2.5 to 5.8 times
+        (Section~\ref{sec:res-conc}). Without MPS, never run more than one calculation per GPU.
+        On this node, MPS must be started inside the job, with pipe and log directories private
+        to the job, as in the scripts of this study; the number of copies is limited by the
+        host memory allocated per GPU.
 \end{itemize}
 
 \subsection{Further tests}
 \label{sec:disc-further}
 
-Three tests would settle the question of hardware suitability:
+Two tests would complete the assessment of the hardware (the third one initially planned,
+concurrent runs under MPS, is reported in Section~\ref{sec:res-conc}):
 \begin{enumerate}
   \item \textbf{CPU reference.} Build a CPU version of VASP 6.5.1 and rerun a subset of the
         calculations on 16 and 32 cores.
   \item \textbf{Larger systems.} Extend the Si and MgO series to 128, 256, and 512 atoms, where
         the GPU port should be efficient.
-  \item \textbf{Throughput.} Run several small calculations concurrently on the same GPU
-        (NVIDIA Multi-Process Service) to check whether utilization and aggregate throughput
-        increase.
 \end{enumerate}
 
 \section{Conclusion}
@@ -815,8 +898,11 @@ stays below about \SI{50}{\percent}, memory below \SI{13}{GB}, and the time per 
 sublinearly with the number of atoms. Two GPUs shorten a calculation by a factor of 1.0 to
 1.9 only, so for small cells running one calculation per GPU gives more throughput. When two
 GPUs are used, \texttt{KPAR}=2 is preferable when there are many $k$-points, and
-\texttt{KPAR}=1 can be better when there are only 3 or 4. The phonon results, the concurrent
-runs on one GPU, and larger systems will show how much of the idle capacity can be recovered.
+\texttt{KPAR}=1 can be better when there are only 3 or 4. Complete phonon workflows of small
+cells take less than two hours on one GPU. Most of the idle capacity can be recovered by running
+several calculations on the same GPU under MPS: eight concurrent single points give 4 to 6 times
+the throughput of one, while without MPS concurrent runs are no faster, or even slower, than
+running them one after the other. Larger systems remain to be tested.
 
 \section*{Data and Code Availability}
 Scripts, inputs generation, and result tables are available at

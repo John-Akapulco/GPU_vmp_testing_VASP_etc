@@ -7,10 +7,9 @@ de 1 à 80 atomes : séries d'échelle (Si, Al, MgO, de 1 à 64 atomes), puis je
 de géométrie. Chacun suit les deux méthodologies de Materials Project : **PBE** (GGA/GGA+U)
 et **r2SCAN**.
 
-> **État au 28/09/2026 :** phases 0 à 5 terminées (1 et 2 GPU, 14 structures × 4 séries, répétitions ;
-> phonons PBE de Si, Al et MgO, analysés) ; en cours : calculs simultanés sur une GPU (phase 6,
-> relancée le 28/09 après un blocage du script, voir `benchmark/README.md`) ; soumis à la suite :
-> calibration de la dynamique moléculaire de LiN₃ (phase 7, étape 1).
+> **État au 28/09/2026 :** phases 0 à 6 terminées (1 et 2 GPU, 14 structures × 4 séries, répétitions ;
+> phonons PBE de Si, Al et MgO ; calculs simultanés sur une GPU avec et sans MPS, analysés) ;
+> en cours : calibration de la dynamique moléculaire de LiN₃ (phase 7, étape 1, démarrée le 28/09 à 17 h 30).
 > Programmé ensuite, dans cet ordre : production MLFF de LiN₃ (après analyse de la calibration),
 > puis jeu de diversité, points simples (phase 8) et enfin optimisations (phase 9).
 
@@ -54,7 +53,7 @@ mais ses serveurs ne sont pas lancés et aucune clé LLM n'est configurée.
 | CPU | AMD EPYC 7662, 32 cœurs attribués à la VM |
 | Mémoire | 62 Go |
 | Ressources par GPU (Slurm) | 16 cœurs, ~28 Go de RAM, pas de limite de temps |
-| Logiciel | VASP 6.5.1, NVHPC 26.3, OpenMPI HPC-X, Intel MKL |
+| Logiciel | VASP 6.5.1 (10 mars 2025), version GPU OpenACC compilée le 23/09/2026 (`vasp_std`, `vasp_gam`) ; NVHPC 26.3, OpenMPI HPC-X, Intel MKL |
 | Exécution | 1 rang MPI par GPU, `OMP_NUM_THREADS=1` |
 
 ## Méthodes
@@ -170,8 +169,8 @@ en même temps.
 | 3 | Optimisations, séries d'échelle, PBE et r2SCAN | 1 | 28 | fait |
 | 4 | Passage à 2 GPU : les quatre séries, `g2k1` et `g2k2` | 2 | 112 | fait |
 | 5 | Phonons PBE (phonopy) de Si, Al et MgO, `g1` puis `g2k1` | 1, 2 | 6 chaînes | fait, analysé (`benchmark/results/phonons_summary.txt`, rapport) |
-| 6 | Calculs simultanés sur une GPU (N = 1 à 8, avec et sans MPS) | 1 | 26 lots, 100 calculs | en cours |
-| 7 | Dynamique moléculaire NVT de LiN₃ (144 at.), AIMD et MLFF | 1 | étape 1 : 4 calculs ; étape 2 : 14 segments | étape 1 soumise ; étape 2 après analyse de la calibration |
+| 6 | Calculs simultanés sur une GPU (N = 1 à 8, avec et sans MPS) | 1 | 26 lots, 100 calculs | fait, analysé (`benchmark/results/concurrency_summary.txt`, rapport) |
+| 7 | Dynamique moléculaire NVT de LiN₃ (144 at.), AIMD et MLFF | 1 | étape 1 : 4 calculs ; étape 2 : 14 segments | étape 1 en cours ; étape 2 après analyse de la calibration |
 | 8 | Jeu de diversité, points simples PBE et r2SCAN (Si 2 at. exclu, déjà calculé) | 1 | 68 | entrées prêtes, soumission après la phase 7 |
 | 9 | Jeu de diversité, optimisations PBE et r2SCAN | 1 | 68 | après la phase 8 |
 
@@ -384,3 +383,41 @@ Constats :
 - Sur les 56 cas : KPAR=2 plus rapide dans 42, KPAR=1 dans 6 (tous à 64 atomes), égalité à 2 % près dans 8.
 
 ![Accélération sur 2 GPU](benchmark/results/speedup_2gpu.png)
+
+### Calculs simultanés sur une GPU (phase 6)
+
+Produits par `benchmark/scripts/07_concurrency.py --analyze`. Données : [`benchmark/results/concurrency.csv`](benchmark/results/concurrency.csv),
+[`concurrency_summary.txt`](benchmark/results/concurrency_summary.txt).
+N copies identiques d'un point simple tournent ensemble sur une H100, dans un seul job Slurm.
+Gain de débit = N × t_ref / T_lot, où t_ref est le temps du calcul seul en `g1` et T_lot le temps
+du lot complet (idéal : N). Sans MPS, les processus se partagent la GPU par tranches de temps ;
+avec MPS, leurs noyaux s'exécutent en même temps. Tous les lots se sont terminés sans erreur,
+sans autre job sur la machine.
+
+| Série | Composé | Atomes | t_ref (s) | N=2 sans MPS | N=2 MPS | N=4 sans MPS | N=4 MPS | N=8 sans MPS | N=8 MPS |
+|---|---|---|---|---|---|---|---|---|---|
+| `pbe_sp` | Si | 8 | 18,1 | 0,56 | 1,90 | 0,61 | 3,47 | 0,60 | **5,78** |
+| `pbe_sp` | MgO | 32 | 138,1 | 0,55 | 1,89 | 0,58 | 3,31 | 0,56 | **5,04** |
+| `r2scan_sp` | Al | 32 | 180,7 | 0,93 | 1,81 | 1,08 | 2,94 | 1,15 | **4,12** |
+| `r2scan_sp` | Si | 64 | 324,2 | 1,11 | 1,67 | 1,35 | **2,53** | – | – |
+
+Constats :
+
+- **Avec MPS**, le débit augmente nettement : ×1,7 à 1,9 avec 2 calculs, ×2,5 à 3,5 avec 4 et
+  ×4,1 à 5,8 avec 8. Chaque calcul n'est ralenti que de 1,3 à 1,9× à N = 8. Le gain diminue avec
+  la taille du système : les petits calculs laissent le plus de GPU inutilisée.
+- **Sans MPS**, lancer plusieurs calculs n'apporte rien : en PBE, le lot est même 1,6 à 1,8 fois
+  plus lent que les mêmes calculs lancés l'un après l'autre (gain de 0,55 à 0,61) ; en r2SCAN, le
+  gain reste entre 0,93 et 1,35. Le partage par tranches de temps entre contextes CUDA coûte plus
+  qu'il ne rapporte.
+- La mémoire GPU croît proportionnellement à N (MgO 32 at. : 3,7 Go seul, 29 Go à N = 8 ;
+  Al 32 at. r2SCAN : 34,5 Go à N = 8) ; l'utilisation moyenne passe de 25 à 37 % pour un calcul
+  seul à 69 à 90 % pour 8 calculs avec MPS.
+- Les énergies des copies sont identiques à celles de la référence (écart nul).
+- Si 64 at. r2SCAN est limité à N = 4 par la mémoire hôte (~28 Go par GPU sous Slurm).
+
+Conséquence pratique : pour des criblages de petits systèmes (jusqu'à ~64 atomes), lancer 4 à 8
+calculs par GPU sous MPS multiplie le débit par 2,5 à 5,8. Sans MPS, il faut s'en tenir à un
+calcul par GPU.
+
+![Gain de débit sur une GPU](benchmark/results/concurrency_throughput.png)

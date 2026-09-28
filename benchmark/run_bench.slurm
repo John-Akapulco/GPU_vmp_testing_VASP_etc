@@ -19,7 +19,7 @@ export OMPI_MCA_coll_hcoll_enable=0
 EXE=$(sed -n 's/.*"exe": *"\([a-z_]*\)".*/\1/p' bench.json); EXE=${EXE:-vasp_std}
 
 # Autres jobs présents sur le nœud au démarrage (ils peuvent influencer les temps)
-squeue -h -t R -w "$SLURMD_NODENAME" -o "%i|%u|%b" | grep -v "^${SLURM_JOB_ID}|" > node_jobs.txt
+squeue -h -t R -w "$SLURMD_NODENAME" -o "%i|%u|%b" | grep -v -e "^${SLURM_JOB_ID}|" -e "^${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}|" > node_jobs.txt
 nvidia-smi --query-gpu=index,name,memory.total,driver_version --format=csv,noheader > gpu_info.txt 2>&1
 # Suivi GPU toutes les 2 s : utilisation, mémoire, puissance
 nvidia-smi --query-gpu=timestamp,index,utilization.gpu,memory.used,power.draw \

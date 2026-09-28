@@ -108,6 +108,15 @@ Ce test mesure ce que rapporte le lancement de N calculs identiques en même tem
   3,9 h au plus sur 1 GPU.
 - Mesures : gain de débit N × t_ref / T_lot (idéal : N), ralentissement de chaque calcul,
   temps par pas SCF, mémoire et utilisation GPU, écart d'énergie avec la référence (doit être nul).
+- Résultats (26 lots, 100 calculs, tous terminés le 28/09/2026) : section « Calculs simultanés sur
+  une GPU » du [README principal](../README.md) et du rapport.
+
+Relevé des autres jobs (`node_jobs.txt`, `other_jobs_on_node`) : jusqu'au 28/09/2026, les scripts
+`run_*.slurm` n'excluaient que `SLURM_JOB_ID`, alors que `squeue` affiche une tâche de job array
+sous la forme `<job>_<tâche>` : chaque tâche d'array se comptait elle-même. Dans les résultats
+antérieurs (`results.csv`, `concurrency.csv`), il faut donc retrancher 1 pour les tâches d'array
+(en phase 6, la valeur 1 signifie qu'aucun autre job ne tournait). Les scripts excluent
+désormais aussi `${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}`.
 
 ## Dynamique moléculaire de LiN₃ (AIMD et MLFF)
 

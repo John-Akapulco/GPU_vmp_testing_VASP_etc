@@ -17,7 +17,7 @@ source "$SLURM_SUBMIT_DIR/env.sh"
 export OMP_NUM_THREADS=1
 export OMPI_MCA_coll_hcoll_enable=0
 
-squeue -h -t R -w "$SLURMD_NODENAME" -o "%i|%u|%b" | grep -v "^${SLURM_JOB_ID}|" > "$DIR/node_jobs.txt"
+squeue -h -t R -w "$SLURMD_NODENAME" -o "%i|%u|%b" | grep -v -e "^${SLURM_JOB_ID}|" -e "^${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}|" > "$DIR/node_jobs.txt"
 nvidia-smi --query-gpu=index,name,memory.total,driver_version --format=csv,noheader > "$DIR/gpu_info.txt" 2>&1
 echo "Début $(date -Is) | $DIR | $SLURM_NTASKS GPU ($CUDA_VISIBLE_DEVICES) | job ${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}"
 python "$BENCH_DIR/scripts/phonon_pipeline.py" "$DIR"
