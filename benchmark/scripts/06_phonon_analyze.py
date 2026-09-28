@@ -23,11 +23,85 @@ PH = BENCH / "phonons"
 
 
 def t(s):
-    return datetime.fromisoformat(s) if s else None
+    # l'heure de soumission est écrite sans fuseau : la prendre comme heure locale
+    return datetime.fromisoformat(s).astimezone() if s else None
 
 
 def secs(a, b):
     return (b - a).total_seconds() if a and b else float("nan")
+
+
+THZ_TO_CM = 33.35641  # 1 THz en cm⁻¹
+
+
+def band_segments(path):
+    """Branches de band.yaml par segment du chemin : [(x, fréquences cm⁻¹ (nq, nbandes))], étiquettes."""
+    import yaml
+    b = yaml.safe_load(path.read_text())
+    x = np.array([p["distance"] for p in b["phonon"]])
+    f = np.array([[m["frequency"] for m in p["band"]] for p in b["phonon"]]) * THZ_TO_CM
+    segs, i = [], 0
+    for n in b["segment_nqpoint"]:
+        segs.append((x[i:i + n], f[i:i + n]))
+        i += n
+    return segs, b["labels"]
+
+
+def plot_dispersions(chains):
+    """Dispersions en cm⁻¹, variante g1 : plus grande supercellule en trait plein, plus petite en tirets."""
+    try:
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+    except ImportError:
+        return
+    ink, muted, grid, blue = "#1f2328", "#5b6068", "#e3e5e8", "#2a78d6"
+    plt.rcParams.update({"font.size": 10, "axes.edgecolor": muted, "axes.labelcolor": ink,
+                         "xtick.color": muted, "ytick.color": muted, "text.color": ink})
+    order = {"Si": 0, "Al": 1, "MgO": 2}
+    labels = sorted((l for l, v in chains if v == "g1"), key=lambda l: (order.get(chains[(l, "g1")][0]["formula"], 9), l))
+    if not labels:
+        return
+    fig, axes = plt.subplots(1, len(labels), figsize=(4 * len(labels), 3.8))
+    for ax, label in zip(np.atleast_1d(axes), labels):
+        meta = chains[(label, "g1")][0]
+        d = PH / label / "g1"
+        ns = sorted(meta["supercells"])
+        for n, style, name in ((ns[0], dict(color=muted, linewidth=1.0, linestyle=(0, (3, 2))), "Smaller supercell"),
+                               (ns[-1], dict(color=blue, linewidth=1.4), "Larger supercell")):
+            f = d / f"sc{n}" / "band.yaml"
+            if not f.exists():
+                continue
+            segs, labs = band_segments(f)
+            for k, (x, fr) in enumerate(segs):
+                ax.plot(x, fr, **style)
+            ax.plot([], [], **style, label=f"{name}, {n}×{n}×{n} ({n ** 3 * meta['nsites_prim']} atoms)")
+        # points spéciaux ; deux étiquettes à une même abscisse (saut du chemin) : « U|K »
+        ticks, names = [], []
+        for (x, _), (a, b) in zip(segs, labs):
+            for xx, lab in ((x[0], a), (x[-1], b)):
+                lab = lab.replace("$\\mathrm{", "").replace("}$", "").replace("$\\Gamma$", "Γ")
+                if ticks and abs(xx - ticks[-1]) < 1e-6:
+                    if lab != names[-1]:
+                        names[-1] += "|" + lab
+                else:
+                    ticks.append(xx)
+                    names.append(lab)
+        ax.set_xticks(ticks, names)
+        for xx in ticks[1:-1]:
+            ax.axvline(xx, color=grid, linewidth=0.8, zorder=0)
+        ax.axhline(0, color=muted, linewidth=0.8)
+        ax.set_xlim(ticks[0], ticks[-1])
+        ax.set_ylim(bottom=min(0, ax.get_ylim()[0]))
+        ax.set_title(f"{meta['formula']} ({meta['material_id']})", loc="left", fontsize=11, color=ink)
+        ax.spines[["top", "right"]].set_visible(False)
+        ax.tick_params(axis="x", length=0)
+    np.atleast_1d(axes)[0].set_ylabel("Frequency (cm$^{-1}$)")
+    for ax in np.atleast_1d(axes):
+        ax.legend(frameon=False, loc="upper center", bbox_to_anchor=(0.5, -0.1), ncol=1, fontsize=8)
+    fig.tight_layout()
+    fig.savefig(BENCH / "results" / "phonon_dispersions.png", dpi=200)
+    plt.close(fig)
 
 
 def main():
@@ -121,6 +195,7 @@ def main():
     text = "\n".join(lines)
     (BENCH / "results" / "phonons_summary.txt").write_text(text + "\n")
     print(text)
+    plot_dispersions(chains)
 
 
 if __name__ == "__main__":

@@ -8,7 +8,7 @@ de géométrie. Chacun suit les deux méthodologies de Materials Project : **PBE
 et **r2SCAN**.
 
 > **État au 28/09/2026 :** phases 0 à 5 terminées (1 et 2 GPU, 14 structures × 4 séries, répétitions ;
-> phonons PBE de Si, Al et MgO, analyse à faire) ; en cours : calculs simultanés sur une GPU (phase 6,
+> phonons PBE de Si, Al et MgO, analysés) ; en cours : calculs simultanés sur une GPU (phase 6,
 > relancée le 28/09 après un blocage du script, voir `benchmark/README.md`) ; soumis à la suite :
 > calibration de la dynamique moléculaire de LiN₃ (phase 7, étape 1).
 > Programmé ensuite, dans cet ordre : production MLFF de LiN₃ (après analyse de la calibration),
@@ -169,7 +169,7 @@ en même temps.
 | 2 | Points simples, séries d'échelle, PBE et r2SCAN | 1 | 28 | fait |
 | 3 | Optimisations, séries d'échelle, PBE et r2SCAN | 1 | 28 | fait |
 | 4 | Passage à 2 GPU : les quatre séries, `g2k1` et `g2k2` | 2 | 112 | fait |
-| 5 | Phonons PBE (phonopy) de Si, Al et MgO, `g1` puis `g2k1` | 1, 2 | 6 chaînes | fait (analyse à faire) |
+| 5 | Phonons PBE (phonopy) de Si, Al et MgO, `g1` puis `g2k1` | 1, 2 | 6 chaînes | fait, analysé (`benchmark/results/phonons_summary.txt`, rapport) |
 | 6 | Calculs simultanés sur une GPU (N = 1 à 8, avec et sans MPS) | 1 | 26 lots, 100 calculs | en cours |
 | 7 | Dynamique moléculaire NVT de LiN₃ (144 at.), AIMD et MLFF | 1 | étape 1 : 4 calculs ; étape 2 : 14 segments | étape 1 soumise ; étape 2 après analyse de la calibration |
 | 8 | Jeu de diversité, points simples PBE et r2SCAN (Si 2 at. exclu, déjà calculé) | 1 | 68 | entrées prêtes, soumission après la phase 7 |

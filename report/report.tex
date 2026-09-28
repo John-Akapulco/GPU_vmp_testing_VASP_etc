@@ -660,7 +660,73 @@ problem with the GPU build.
 
 \subsection{Phonons}
 \label{sec:res-phonons}
-\todo{Dispersions, convergence between supercell sizes, time-to-solution on one and two GPUs.}
+Figure~\ref{fig:phonon-dispersions} shows the PBE phonon dispersions computed on one GPU
+(\texttt{g1}) for both supercell sizes. No imaginary frequency appears: on the $30^3$ $q$-mesh,
+the lowest frequency away from $\Gamma$ is positive for all three materials, and the acoustic
+branches go to zero at $\Gamma$. The highest optical frequency of Si at $\Gamma$ is
+\SI{503}{cm^{-1}}; the Al spectrum extends up to \SI{322}{cm^{-1}}. For MgO, the non-analytical
+term correction (Born charge $Z^*=1.99$, $\varepsilon_\infty=3.24$) splits the optical modes at
+$\Gamma$ into TO (\SI{371}{cm^{-1}}) and LO (\SI{680}{cm^{-1}}).
+
+The two supercell sizes give almost the same dispersions. The largest differences are on
+zone-boundary acoustic branches: \SI{18}{cm^{-1}} for the transverse acoustic mode of Si at X
+(\SI{129}{} to \SI{147}{cm^{-1}}), \SI{18}{cm^{-1}} for MgO and \SI{8}{cm^{-1}} for Al.
+At \SI{300}{K}, the heat capacity changes by less than \SI{0.05}{J\,K^{-1}\,mol^{-1}} between
+the two sizes, so the smaller supercell is enough for thermodynamic properties, while the
+larger one is needed for zone-boundary frequencies. The \texttt{g2k1} runs give the same
+frequencies as \texttt{g1} to within \SI{0.02}{cm^{-1}}.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{phonon_dispersions.png}
+  \caption{PBE phonon dispersions of Si, Al, and MgO (one GPU, \texttt{g1}), in cm$^{-1}$.
+  Dashed gray: smaller supercell; solid blue: larger supercell (Table~\ref{tab:phonon-cells}).
+  The MgO bands include the non-analytical term correction. U$|$K marks a discontinuity of the
+  path.}
+  \label{fig:phonon-dispersions}
+\end{figure}
+
+\paragraph{Cost on one and two GPUs.} Table~\ref{tab:phonon-cost} gives the VASP wall time of
+each step of the workflows. A complete workflow takes between \SI{28}{min} (Si) and
+\SI{104}{min} (MgO) on one GPU. The force calculations in the larger supercell dominate, except
+for MgO, where the Born charges and $\varepsilon_\infty$ (\texttt{LEPSILON} on the 2-atom cell,
+$21^3$ $k$-mesh) take \SI{31}{min}, 30\% of the workflow and more than the two displacements of
+the 54-atom supercell. The phonopy post-processing takes about \SI{10}{s} per supercell and is
+negligible.
+
+\begin{table}[htbp]
+\centering
+\caption{VASP wall time of the phonon workflows (minutes) and GPU-hours, on one GPU
+(\texttt{g1}) and two GPUs (\texttt{g2k1}). Speedup: total \texttt{g1} time divided by total
+\texttt{g2k1} time.}
+\label{tab:phonon-cost}
+\small
+\begin{tabular}{@{}llrrrrrrr@{}}
+\toprule
+Material & Variant & Relax. & Born & Small SC & Large SC & Total & GPU-h & Speedup \\
+\midrule
+Si  & \texttt{g1}   & 1.8 & --   & 6.1  & 20.2 & 28.0  & 0.47 & \\
+    & \texttt{g2k1} & 1.6 & --   & 4.2  & 11.8 & 17.5  & 0.58 & 1.60 \\
+Al  & \texttt{g1}   & 2.9 & --   & 14.2 & 31.4 & 48.5  & 0.81 & \\
+    & \texttt{g2k1} & 3.1 & --   & 10.1 & 19.4 & 32.5  & 1.08 & 1.49 \\
+MgO & \texttt{g1}   & 7.6 & 31.5 & 20.0 & 44.9 & 103.8 & 1.73 & \\
+    & \texttt{g2k1} & 7.0 & 23.0 & 16.1 & 29.5 & 75.6  & 2.52 & 1.37 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Two GPUs shorten the workflows by a factor of 1.37 to 1.60, a parallel efficiency of 69 to
+80\%, so they cost 25 to 46\% more GPU-hours. The gain depends on the size of the cell, as in
+Section~\ref{sec:res-2gpu}: none for the relaxations of the 1- and 2-atom primitive cells
+(0.96 to $1.15\times$), 1.24 to $1.44\times$ for the 54-atom supercells, and 1.40 to
+$1.72\times$ for the 64- to 128-atom supercells.
+
+Both campaigns were submitted together; the two-GPU campaign was queued behind the one-GPU
+campaign so that the two never ran at the same time. After a wait for earlier jobs of this study,
+the one-GPU campaign (three materials, one after the other) ran for \SI{3.0}{h}, and the two-GPU
+campaign for \SI{2.1}{h}. For phonons of small cells, one GPU is therefore the economical
+choice; two GPUs are worth using only to get the result about 1.5 times sooner when the node is
+otherwise idle.
 
 % ---------------------------------------------------------------------------
 \section{Discussion and Recommendations}

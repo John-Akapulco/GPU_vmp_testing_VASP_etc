@@ -1,0 +1,30 @@
+== Temps par chaîne (s) ==
+matériau      var.     relax    born      sc3      sc4      sc5     VASP   GPU·h  attente  restit.  statut
+scal_Al_001   g1         176       0      nan      849     1882     2907   0.807    10641    13562  ok
+scal_Al_001   g2k1       184       0      nan      606     1161     1950   1.083    21517    23481  ok
+scal_MgO_002  g1         454    1888     1197     2691      nan     6230   1.731    15263    21516  ok
+scal_MgO_002  g2k1       418    1380      967     1769      nan     4533   2.519    24554    29110  ok
+scal_Si_002   g1         107       0      363     1209      nan     1678   0.466    13563    15262  ok
+scal_Si_002   g2k1        93       0      252      705      nan     1050   0.584    23482    24553  ok
+
+== Temps de restitution par campagne (soumission du 1er calcul -> fin du dernier) ==
+g1       5.98 h  (3 matériaux)
+g2k1     8.09 h  (3 matériaux)
+
+== Accélération 2 GPU (temps VASP g1 / g2k1, par étape) ==
+scal_Al_001    relax 0.96x  sc4 1.40x  sc5 1.62x  | total 1.49x
+scal_MgO_002   relax 1.09x  born 1.37x  sc3 1.24x  sc4 1.52x  | total 1.37x
+scal_Si_002    relax 1.15x  sc3 1.44x  sc4 1.72x  | total 1.60x
+
+== Qualité des phonons ==
+scal_Al_001   g1     fmin(maillage, hors Γ)   0.520 THz  fmax   9.65  Cv300  22.85  dérive F 7.0e-08  | sc4→sc5 : max Δf 0.234 THz, ΔCv +0.003, ΔS +0.043 J/K/mol
+scal_Al_001   g2k1   fmin(maillage, hors Γ)   0.519 THz  fmax   9.65  Cv300  22.85  dérive F 3.0e-08  | sc4→sc5 : max Δf 0.234 THz, ΔCv +0.002, ΔS +0.020 J/K/mol
+scal_MgO_002  g1     fmin(maillage, hors Γ)   0.776 THz  fmax  20.36  Cv300  37.85  dérive F 6.0e-08  | sc3→sc4 : max Δf 0.545 THz, ΔCv -0.024, ΔS -0.153 J/K/mol
+scal_MgO_002  g2k1   fmin(maillage, hors Γ)   0.776 THz  fmax  20.36  Cv300  37.85  dérive F 4.0e-08  | sc3→sc4 : max Δf 0.545 THz, ΔCv -0.023, ΔS -0.147 J/K/mol
+scal_Si_002   g1     fmin(maillage, hors Γ)   0.471 THz  fmax  15.07  Cv300  40.09  dérive F 3.0e-08  | sc3→sc4 : max Δf 0.531 THz, ΔCv +0.047, ΔS -0.175 J/K/mol
+scal_Si_002   g2k1   fmin(maillage, hors Γ)   0.471 THz  fmax  15.07  Cv300  40.09  dérive F 5.0e-08  | sc3→sc4 : max Δf 0.531 THz, ΔCv +0.047, ΔS -0.175 J/K/mol
+
+== Reproductibilité 1 GPU / 2 GPU (plus grande supercellule) ==
+scal_Al_001    sc5 : max |Δf| = 0.0001 THz
+scal_MgO_002   sc4 : max |Δf| = 0.0005 THz
+scal_Si_002    sc4 : max |Δf| = 0.0001 THz
