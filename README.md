@@ -13,6 +13,7 @@ et **r2SCAN**.
 > En cours : calibration de la dynamique moléculaire de LiN₃ (phase 7, étape 1) : AIMD `vasp_gam` terminée ;
 > AIMD `vasp_std` interrompue au pas 64 (job remis en file le 28/09), puis relâchée le 01/10 avec les deux
 > calculs MLFF qui la suivent ; les trois jobs attendent qu'un GPU se libère.
+> Soumise le 01/10 : campagne test2 (effet de `NSIM = 32`, variante `g1`), placée avant les calculs MLFF.
 > Programmé ensuite, dans cet ordre : production MLFF de LiN₃ (après analyse de la calibration),
 > puis jeu de diversité, points simples (phase 8) et enfin optimisations (phase 9).
 
@@ -176,6 +177,7 @@ en même temps.
 | 7 | Dynamique moléculaire NVT de LiN₃ (144 at.), AIMD et MLFF | 1 | étape 1 : 4 calculs ; étape 2 : 14 segments | étape 1 en cours (1 calcul sur 4 terminé, 3 en file) ; étape 2 après analyse de la calibration |
 | 8 | Jeu de diversité, points simples PBE et r2SCAN (Si 2 at. exclu, déjà calculé) | 1 | 68 | entrées prêtes, soumission après la phase 7 |
 | 9 | Jeu de diversité, optimisations PBE et r2SCAN | 1 | 68 | après la phase 8 |
+| test2 | Effet de `NSIM` : séries d'échelle (4 séries) et phonons, `g1`, avec `NCORE = 1`, `LPLANE = .TRUE.`, `NSIM = 32` | 1 | 56 + 3 chaînes | soumise le 01/10 (jobs 261 et 262), avant les calculs MLFF de la phase 7 |
 
 Les phases 0 à 4 portent sur les 14 structures des séries d'échelle (option `--family scaling`
 de `02_make_inputs.py` et `03_submit.py`) ; les phases 8 et 9 sur le jeu de diversité
@@ -211,6 +213,19 @@ Premiers résultats de la calibration (au 01/10/2026, provisoires) :
   vers 290 K en 200 fs.
 - Une AIMD pure de 15 ps coûterait environ 15 000 × 61 s ≈ 254 h de GPU : c'est ce que le MLFF
   doit réduire ; son gain reste à mesurer.
+
+### Campagne test2 : effet de NSIM
+
+Les 56 calculs `g1` des séries d'échelle (phases 2 et 3) et les 3 chaînes de phonons `g1` (phase 5)
+sont refaits dans `benchmark/test2/` (non versionné), avec trois tags ajoutés à chaque INCAR :
+`NCORE = 1`, `LPLANE = .TRUE.` et `NSIM = 32`. D'après les `vasprun.xml` de la première campagne,
+VASP utilisait déjà `NCORE = 1` (imposé par la version GPU) et `LPLANE = .TRUE.` (valeur par défaut),
+avec `NSIM = 4` : la campagne mesure donc l'effet de `NSIM`, de 4 à 32.
+
+Soumission : listes `lists/test2_bench_<date>.txt` et `lists/test2_phonons_<date>.txt`, jobs
+`vt2-bench` (56 calculs, un à la fois) puis `vt2-phonon` (3 chaînes), soit environ 7 h de GPU
+d'après les temps de référence. Comparaison prévue, calcul par calcul : temps par pas SCF, temps
+total, mémoire et utilisation GPU, écart d'énergie (attendu nul).
 
 ## Mesures relevées
 

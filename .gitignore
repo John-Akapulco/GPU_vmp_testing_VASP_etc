@@ -10,6 +10,7 @@ benchmark/runs_aimd/
 benchmark/logs/
 benchmark/lists/
 benchmark/phonons/
+benchmark/test2/
 # VASPilot : configurations contenant des clés, données de travail
 vaspilot/configs/mcp_config.yaml
 vaspilot/configs/crew_config.yaml
