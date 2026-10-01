@@ -7,9 +7,12 @@ de 1 à 80 atomes : séries d'échelle (Si, Al, MgO, de 1 à 64 atomes), puis je
 de géométrie. Chacun suit les deux méthodologies de Materials Project : **PBE** (GGA/GGA+U)
 et **r2SCAN**.
 
-> **État au 28/09/2026 :** phases 0 à 6 terminées (1 et 2 GPU, 14 structures × 4 séries, répétitions ;
+> **État au 01/10/2026 :** phases 0 à 6 terminées (1 et 2 GPU, 14 structures × 4 séries, répétitions ;
 > phonons PBE de Si, Al et MgO ; calculs simultanés sur une GPU avec et sans MPS, analysés) ;
-> en cours : calibration de la dynamique moléculaire de LiN₃ (phase 7, étape 1, démarrée le 28/09 à 17 h 30).
+> rapport complété d'une annexe donnant tous les INCAR utilisés.
+> En cours : calibration de la dynamique moléculaire de LiN₃ (phase 7, étape 1) : AIMD `vasp_gam` terminée ;
+> AIMD `vasp_std` interrompue au pas 64 (job remis en file le 28/09), puis relâchée le 01/10 avec les deux
+> calculs MLFF qui la suivent ; les trois jobs attendent qu'un GPU se libère.
 > Programmé ensuite, dans cet ordre : production MLFF de LiN₃ (après analyse de la calibration),
 > puis jeu de diversité, points simples (phase 8) et enfin optimisations (phase 9).
 
@@ -20,7 +23,7 @@ et **r2SCAN**.
 | [`benchmark/`](benchmark/) | Scripts de l'étude : récupération des structures MP, génération des entrées, soumission Slurm, analyse. Installation : `benchmark/setup.sh` |
 | [`vaspilot/`](vaspilot/) | **Mis de côté, hors de l'étude.** [VASPilot](https://github.com/JiaxuanLiu-Arsko/VASPilot) adapté à cette machine : agents qui pilotent VASP en langage naturel. Voir la note ci-dessous |
 | [`results/`](results/) | Tableaux de résultats finaux, un par phase |
-| [`report/`](report/) | Rapport en anglais (LaTeX et PDF, compilé avec `tectonic report/report.tex`) |
+| [`report/`](report/) | Rapport en anglais (LaTeX et PDF, compilé avec `tectonic report/report.tex`) ; l'annexe A reproduit les INCAR de toutes les séries (MP, phonons, AIMD) |
 
 Les calculs eux-mêmes (OUTCAR, etc.) ne sont pas versionnés : ils restent sur vm1-ic2mp.
 Les POTCAR, sous licence VASP, ne sont jamais versionnés.
@@ -170,7 +173,7 @@ en même temps.
 | 4 | Passage à 2 GPU : les quatre séries, `g2k1` et `g2k2` | 2 | 112 | fait |
 | 5 | Phonons PBE (phonopy) de Si, Al et MgO, `g1` puis `g2k1` | 1, 2 | 6 chaînes | fait, analysé (`benchmark/results/phonons_summary.txt`, rapport) |
 | 6 | Calculs simultanés sur une GPU (N = 1 à 8, avec et sans MPS) | 1 | 26 lots, 100 calculs | fait, analysé (`benchmark/results/concurrency_summary.txt`, rapport) |
-| 7 | Dynamique moléculaire NVT de LiN₃ (144 at.), AIMD et MLFF | 1 | étape 1 : 4 calculs ; étape 2 : 14 segments | étape 1 en cours ; étape 2 après analyse de la calibration |
+| 7 | Dynamique moléculaire NVT de LiN₃ (144 at.), AIMD et MLFF | 1 | étape 1 : 4 calculs ; étape 2 : 14 segments | étape 1 en cours (1 calcul sur 4 terminé, 3 en file) ; étape 2 après analyse de la calibration |
 | 8 | Jeu de diversité, points simples PBE et r2SCAN (Si 2 at. exclu, déjà calculé) | 1 | 68 | entrées prêtes, soumission après la phase 7 |
 | 9 | Jeu de diversité, optimisations PBE et r2SCAN | 1 | 68 | après la phase 8 |
 
@@ -193,6 +196,21 @@ LiN₃ (mp-2659, C2/m, gap PBE 3,64 eV) en supercellule 2×3×3 de la maille con
 | 1. Calibration | AIMD pure, 200 pas à 300 K, avec `vasp_gam` et `vasp_std` ; MLFF (`ML_MODE = train`) sur le 1er ps avec 1 et 16 threads CPU | coût d'un pas DFT, gain de `vasp_gam`, part CPU du MLFF, proportion de pas DFT |
 | 2. Production (accord donné ; soumise après analyse de la calibration, qui fixe le nombre de threads) | MLFF, 15 ps de 300 à 500 K, en 15 segments de 1 ps (le 1er est fait par la calibration) | ps/jour, évolution de la proportion de pas DFT avec la température |
 | 3. Analyse | performances et physique (distribution radiale N–N, décomposition éventuelle des azotures) | comparaison avec le coût d'une AIMD pure |
+
+Premiers résultats de la calibration (au 01/10/2026, provisoires) :
+
+| Calcul | État | s / pas | Pas SCF par pas | Utilisation GPU moyenne | Mémoire GPU |
+|---|---|---|---|---|---|
+| `calib_dft_gam_g1` (`vasp_gam`) | terminé, 200 pas en 3 h 24 | 61,3 | 13,0 | 37 % | 5,6 Go |
+| `calib_dft_std_g1` (`vasp_std`) | interrompu au pas 64, relancé depuis le début | 67,6 (pas 1 à 63) | – | 28 % | 7,7 Go |
+| `calib_ml_omp1_g1`, `nvt_ml_g1` (MLFF) | en file | – | – | – | – |
+
+- Sur les 63 premiers pas, avec des trajectoires identiques (même graine), `vasp_gam` n'est que
+  10 % plus rapide que `vasp_std` et utilise 27 % de mémoire GPU en moins ; à confirmer sur 200 pas.
+- La température tombe de 300 à 155 K en 20 fs (équipartition), puis le thermostat la ramène
+  vers 290 K en 200 fs.
+- Une AIMD pure de 15 ps coûterait environ 15 000 × 61 s ≈ 254 h de GPU : c'est ce que le MLFF
+  doit réduire ; son gain reste à mesurer.
 
 ## Mesures relevées
 
