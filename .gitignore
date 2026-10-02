@@ -11,6 +11,7 @@ benchmark/logs/
 benchmark/lists/
 benchmark/phonons/
 benchmark/test2/
+benchmark/nsim_scan/
 # VASPilot : configurations contenant des clés, données de travail
 vaspilot/configs/mcp_config.yaml
 vaspilot/configs/crew_config.yaml

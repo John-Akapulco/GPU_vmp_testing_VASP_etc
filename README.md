@@ -7,13 +7,15 @@ de 1 à 80 atomes : séries d'échelle (Si, Al, MgO, de 1 à 64 atomes), puis je
 de géométrie. Chacun suit les deux méthodologies de Materials Project : **PBE** (GGA/GGA+U)
 et **r2SCAN**.
 
-> **État au 01/10/2026 :** phases 0 à 6 terminées (1 et 2 GPU, 14 structures × 4 séries, répétitions ;
+> **État au 02/10/2026 :** phases 0 à 6 terminées (1 et 2 GPU, 14 structures × 4 séries, répétitions ;
 > phonons PBE de Si, Al et MgO ; calculs simultanés sur une GPU avec et sans MPS, analysés) ;
 > rapport complété d'une annexe donnant tous les INCAR utilisés.
+> Terminés et analysés le 02/10 : campagne test2 (`NSIM = 32`) et scan de `NSIM` (4 à 128, PBE et HSE06) :
+> `NSIM` ne change pas la vitesse à plus de quelques pour cent près. Rapport de synthèse en français
+> « VASP sur GPU » ajouté (`report/rapport_gpu_fr.pdf`).
 > En cours : calibration de la dynamique moléculaire de LiN₃ (phase 7, étape 1) : AIMD `vasp_gam` terminée ;
 > AIMD `vasp_std` interrompue au pas 64 (job remis en file le 28/09), puis relâchée le 01/10 avec les deux
 > calculs MLFF qui la suivent ; les trois jobs attendent qu'un GPU se libère.
-> Soumise le 01/10 : campagne test2 (effet de `NSIM = 32`, variante `g1`), placée avant les calculs MLFF.
 > Programmé ensuite, dans cet ordre : production MLFF de LiN₃ (après analyse de la calibration),
 > puis jeu de diversité, points simples (phase 8) et enfin optimisations (phase 9).
 
@@ -24,7 +26,7 @@ et **r2SCAN**.
 | [`benchmark/`](benchmark/) | Scripts de l'étude : récupération des structures MP, génération des entrées, soumission Slurm, analyse. Installation : `benchmark/setup.sh` |
 | [`vaspilot/`](vaspilot/) | **Mis de côté, hors de l'étude.** [VASPilot](https://github.com/JiaxuanLiu-Arsko/VASPilot) adapté à cette machine : agents qui pilotent VASP en langage naturel. Voir la note ci-dessous |
 | [`results/`](results/) | Tableaux de résultats finaux, un par phase |
-| [`report/`](report/) | Rapport en anglais (LaTeX et PDF, compilé avec `tectonic report/report.tex`) ; l'annexe A reproduit les INCAR de toutes les séries (MP, phonons, AIMD) |
+| [`report/`](report/) | Rapport détaillé en anglais (LaTeX et PDF, compilé avec `tectonic report/report.tex`) ; l'annexe A reproduit les INCAR de toutes les séries (MP, phonons, AIMD). Rapport de synthèse en français « VASP sur GPU » (`rapport_gpu_fr.tex`, `rapport_gpu_fr.pdf`) : leviers de performance et recommandations pratiques |
 
 Les calculs eux-mêmes (OUTCAR, etc.) ne sont pas versionnés : ils restent sur vm1-ic2mp.
 Les POTCAR, sous licence VASP, ne sont jamais versionnés.
@@ -177,7 +179,8 @@ en même temps.
 | 7 | Dynamique moléculaire NVT de LiN₃ (144 at.), AIMD et MLFF | 1 | étape 1 : 4 calculs ; étape 2 : 14 segments | étape 1 en cours (1 calcul sur 4 terminé, 3 en file) ; étape 2 après analyse de la calibration |
 | 8 | Jeu de diversité, points simples PBE et r2SCAN (Si 2 at. exclu, déjà calculé) | 1 | 68 | entrées prêtes, soumission après la phase 7 |
 | 9 | Jeu de diversité, optimisations PBE et r2SCAN | 1 | 68 | après la phase 8 |
-| test2 | Effet de `NSIM` : séries d'échelle (4 séries) et phonons, `g1`, avec `NCORE = 1`, `LPLANE = .TRUE.`, `NSIM = 32` | 1 | 56 + 3 chaînes | soumise le 01/10 (jobs 261 et 262), avant les calculs MLFF de la phase 7 |
+| test2 | Effet de `NSIM` : séries d'échelle (4 séries) et phonons, `g1`, avec `NCORE = 1`, `LPLANE = .TRUE.`, `NSIM = 32` | 1 | 56 + 3 chaînes | fait (jobs 261 et 262), analysé le 02/10 |
+| scan NSIM | `NSIM` = 4 à 128 : MgO 32, LiN₃ 144 et Si 216 at. en PBE, MgO 32 at. en HSE06 ; une exécution par valeur (r1) | 1 | 24 | fait (jobs 264 et 294) ; PBE analysé, HSE06 analysé à la main (CSV à régénérer) |
 
 Les phases 0 à 4 portent sur les 14 structures des séries d'échelle (option `--family scaling`
 de `02_make_inputs.py` et `03_submit.py`) ; les phases 8 et 9 sur le jeu de diversité
@@ -226,6 +229,41 @@ Soumission : listes `lists/test2_bench_<date>.txt` et `lists/test2_phonons_<date
 `vt2-bench` (56 calculs, un à la fois) puis `vt2-phonon` (3 chaînes), soit environ 7 h de GPU
 d'après les temps de référence. Comparaison prévue, calcul par calcul : temps par pas SCF, temps
 total, mémoire et utilisation GPU, écart d'énergie (attendu nul).
+
+### Scan de NSIM
+
+Complément de test2 : `NSIM` prend les valeurs 4, 8, 16, 32, 64 et 128 sur trois systèmes, à travail
+électronique identique (20 pas imposés, `NELM = NELMIN = 20`, point simple, sans WAVECAR) :
+MgO 32 at. (12 points k), LiN₃ 144 at. (8 points k) et Si 216 at. (point Γ), en PBE, puis MgO 32 at.
+en HSE06 (12 pas, dont 8 hybrides, environ 65 min par calcul). 1 GPU, 1 rang MPI, 8 threads OpenMP.
+Script `benchmark/scripts/09_nsim_scan.py` (`setup`, `submit`, `analyze`), dossiers `benchmark/nsim_scan/`,
+rapport `benchmark/results/nsim_scan_report.md`.
+
+Chaque valeur de `NSIM` est calculée une seule fois (r1). Les répétitions r2 prévues au départ ont été
+abandonnées le 01/10/2026 : sur MgO PBE, déjà fait en r1 et r2, l'écart entre les deux ne dépasse pas 1 %.
+Ces r2 de MgO restent sur disque mais n'entrent pas dans l'analyse.
+
+**Résultats (02/10/2026).** Temps par pas électronique (s), 1 GPU ; en gras, la valeur la plus rapide.
+Les 18 calculs PBE ont tourné avec d'autres jobs sur le nœud. La partie HSE06 n'est pas encore dans
+`nsim_scan.csv` ni dans `nsim_scan_report.md` : ses valeurs sont tirées directement des OUTCAR (moyenne
+des pas 5 à 12).
+
+| Système | 4 | 8 | 16 | 32 | 64 | 128 | Gain max vs 4 | Mémoire GPU 4 → 128 (Go) |
+|---|---|---|---|---|---|---|---|---|
+| MgO 32 at., PBE | 7,90 | 7,70 | 7,68 | **7,67** | 7,77 | 7,68 | 3 % | 4,7 → 5,9 |
+| LiN₃ 144 at., PBE | 45,0 | 43,9 | 43,5 | 42,7 | **42,6** | 42,8 | 6 % | 10,9 → 19,8 |
+| Si 216 at., PBE | 19,8 | **19,6** | 19,7 | 19,7 | 20,3 | 20,8 | 1 % (−5 % à 128) | 12,1 → 39,3 |
+| MgO 32 at., HSE06 | 483,6 | **481,1** | 483,2 | 486,6 | 484,4 | 486,5 | 0,5 % | – |
+
+Campagne test2 (56 calculs, `NSIM = 32` contre 4) : temps par pas SCF inchangé (rapport moyen 1,005 ;
+médiane par série entre 0,99 et 1,03), même nombre de pas SCF dans 53 cas sur 56, énergies identiques
+(écart ≤ 1,4·10⁻⁴ eV par maille). Deux optimisations r2SCAN de MgO (32 et 64 at.) sont 12 à 16 % plus
+longues, par un chemin de convergence différent, pas par un pas plus lent.
+
+Conclusion : sur H100, de 2 à 216 atomes, `NSIM` ne modifie pas le temps de plus de quelques pour cent,
+alors que la mise à jour des orbitales (RMM-DIIS, Davidson), où il intervient, représente 78 à 99 % de
+la boucle SCF. Les grandes valeurs coûtent de la mémoire sans rien rapporter. Interprétation détaillée
+dans `report/rapport_gpu_fr.pdf` (à confirmer par un profilage).
 
 ## Mesures relevées
 
